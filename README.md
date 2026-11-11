@@ -1,3 +1,16 @@
+> [!WARNING]
+> **This is n64hub/RogueSquadron64Recomp-web, a fork, not Rogue Squadron 64 Recompiled.** Its `main` branch builds the
+> game into a web page (WebGPU, through [N64Recomp-browser](https://github.com/n64hub/N64Recomp-browser)), and
+> everything on it past upstream's commits was written by AI (Claude). It is not made, endorsed or supported by
+> MikeSemicolonD: nothing here is offered upstream, and please don't take issues with this fork there. Building the
+> page: [The web page](#the-web-page).
+>
+> This port is here to build out and test N64Recomp-browser's web support on another game than the ones it was written
+> for: what it turns up is fixed there where it can be, so every recomp's page gets the fix.
+
+**Play it in the browser: https://n64hub.com/star-wars-rogue-squadron/**, with your own Star Wars: Rogue Squadron ROM
+(USA v1.0), picked when the page asks for it and kept in the browser. It needs WebGPU (Chrome or Edge 113 and up).
+
 <div align="center">
 
   [![Rogue Squadron 64 Recompiled icon](./favicon.ico)](https://mikesemicolond.github.io/RogueSquadron64Recomp/)
@@ -449,6 +462,15 @@ Without a Mac, the game cross-compiles from **WSL2 / Linux** with [osxcross](htt
 6. Package with `tools/release/macos/package.sh <out.zip> <arm64-build-dir> [x86_64-build-dir]`, or the `Package (macOS .app, WSL/osxcross)` VS Code task: two build dirs make a universal `.app`.
 
 - **Duplicate symbols:** Apple's `ld64` has no `--allow-multiple-definition`, so the runtime functions this game overrides are declared weak on Apple (`ULTRAMODERN_OVERRIDABLE` in the N64ModernRuntime fork).
+
+### The web page
+
+`tools/build_web.sh <USA 1.0 ROM>` builds the page (`build-web/RogueSquadron64Recomp.html` and its files) on Linux
+with Docker, from N64Recomp-browser's web patches over this game's forks of rt64 and the runtime: its header says
+how, and which files are merged by hand (`web/patches/`). `web/rt64_shaders.txt` is the page's prebuilt shader list,
+recorded by `tools/play_plan.json`'s route (its header says what was played), and `tools/play_plan.json` and
+`tools/play_plan_extended.json` are the plans N64Recomp-browser's `tools/play_page.mjs` plays the page by. The page
+leaves out multiplayer, the texture packs' terrain shader and ray tracing, which need what a browser doesn't have.
 
 ## Architecture
 

@@ -72,7 +72,7 @@ N64Recomp lib/N64ModernRuntime/N64Recomp $(shared N64Recomp)"
         extra=""
         [[ $name != N64ModernRuntime ]] || extra=librecomp/src/config.cpp
         cmake -P $browser/patches/apply.cmake "$name" "$checkout" $skip $extra
-        # From the repository's top: run in a folder of it (his N64Recomp is N64ModernRuntime's), git apply would leave
+        # From the repository's top: run in a folder of it (this game's N64Recomp is N64ModernRuntime's), git apply would leave
         # out every path, which it takes from the top.
         prefix="$(git -C "$checkout" rev-parse --show-prefix)"
         [[ ! -f web/patches/$name.patch ]] || git -C "$(git -C "$checkout" rev-parse --show-toplevel)" apply \

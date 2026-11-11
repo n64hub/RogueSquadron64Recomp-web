@@ -1,6 +1,6 @@
-# The files of his forks where his changes and N64Recomp-browser's web support meet, one per line: <project> <path in
+# The files of this game's forks where its changes and N64Recomp-browser's web support meet, one per line: <project> <path in
 # its checkout>. tools/build_web.sh applies N64Recomp-browser's patches without them, then web/patches/<project>.patch,
-# the web support hand-merged over his code in them, then what N64Recomp-browser changed in them since the commit
+# the web support hand-merged over its code in them, then what N64Recomp-browser changed in them since the commit
 # below (apply.cmake --since).
 # merged from N64Recomp-browser 73144095de33975c9973083c536c215cb252a5e0
 N64ModernRuntime librecomp/include/librecomp/addresses.hpp
