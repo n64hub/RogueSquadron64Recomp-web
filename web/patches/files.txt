@@ -57,6 +57,7 @@ rt64 src/shaders/FbReadAnyChangesCS.hlsl
 rt64 src/shaders/FbReadAnyFullCS.hlsl
 rt64 src/shaders/FbRendererCommon.hlsli
 rt64 src/shaders/PostBlendDitherNoisePS.hlsl
+rt64 src/shaders/RSPProcessCS.hlsl
 rt64 src/shaders/RSPSmoothNormalCS.hlsl
 rt64 src/shaders/RasterPS.hlsl
 rt64 src/shaders/RasterVS.hlsl
