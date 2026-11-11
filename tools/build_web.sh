@@ -83,24 +83,29 @@ N64Recomp lib/N64ModernRuntime/N64Recomp $(shared N64Recomp)"
 }
 
 if [[ "$1" == --patches ]]; then
+    [[ -z "${RS_WEB_INSIDE:-}" ]] || git config --global --add safe.directory '*'
     patch_submodules
     exit 0
 fi
 
-# Outside the container: the patches, the image, then this script again inside it, with the ROM copied in.
+# Outside the container: the image, then this script inside it twice, for the patches (so the host needs no CMake) and
+# for the rest, with the ROM copied in.
 if [[ -z "${RS_WEB_INSIDE:-}" ]]; then
     rom="$(realpath "$1")"
     shift
-    patch_submodules
     image="rs-web:$(sha256sum tools/docker/Dockerfile.web | cut -c1-12)"
     docker image inspect "$image" > /dev/null 2>&1 ||
         docker build -q -t "$image" -f tools/docker/Dockerfile.web tools/docker > /dev/null
     mkdir -p $prep/home $prep/ccache
     cmp -s "$rom" $prep/rom.input || cp "$rom" $prep/rom.input
     parent="$(dirname "$root")"
-    exec docker run --rm -u "$(id -u):$(id -g)" -v "$parent:$parent" -w "$root" -e RS_WEB_INSIDE=1 \
-        -e HOME="$root/$prep/home" -e CCACHE_DIR="$root/$prep/ccache" "$image" \
-        bash tools/build_web.sh "$prep/rom.input" "$@"
+    inside() {
+        docker run --rm -u "$(id -u):$(id -g)" -v "$parent:$parent" -w "$root" -e RS_WEB_INSIDE=1 \
+            -e HOME="$root/$prep/home" -e CCACHE_DIR="$root/$prep/ccache" "$image" bash tools/build_web.sh "$@"
+    }
+    inside --patches
+    inside "$prep/rom.input" "$@"
+    exit
 fi
 
 rom="$1"
