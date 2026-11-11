@@ -6885,10 +6885,10 @@ index a24270c..a1114d2 100644
              worker->commandList->setPipeline(shaderLibrary->rspProcess.pipeline.get());
              worker->commandList->setComputePipelineLayout(shaderLibrary->rspProcess.pipelineLayout.get());
 diff --git a/src/render/rt64_shader_library.cpp b/src/render/rt64_shader_library.cpp
-index 2386fda..21b2fa4 100644
+index 2386fda..831def4 100644
 --- a/src/render/rt64_shader_library.cpp
 +++ b/src/render/rt64_shader_library.cpp
-@@ -4,71 +4,129 @@
+@@ -4,71 +4,126 @@
  
  #include "rt64_shader_library.h"
  
@@ -6922,9 +6922,6 @@ index 2386fda..21b2fa4 100644
 +#   include "shaders/RS64LightsPS.hlsl.wgsl.h"
 +#   include "shaders/RS64TerrainVS.hlsl.wgsl.h"
 +#   include "shaders/RS64TerrainPS.hlsl.wgsl.h"
-+#   ifndef __APPLE__
-+#       include "shaders/RS64TerrainPSPacks.hlsl.wgsl.h"
-+#   endif
 +#   include "shaders/FbChangesDrawDepthPS.hlsl.wgsl.h"
 +#   include "shaders/FbReadAnyChangesCS.hlsl.wgsl.h"
 +#   include "shaders/FbReadAnyFullCS.hlsl.wgsl.h"
@@ -7078,7 +7075,7 @@ index 2386fda..21b2fa4 100644
  
  #ifdef _WIN32
  #   include "shaders/FbChangesClearCS.hlsl.dxil.h"
-@@ -190,22 +248,30 @@
+@@ -190,22 +245,30 @@
  #include "rt64_descriptor_sets.h"
  #include "rt64_render_target.h"
  
@@ -7119,7 +7116,7 @@ index 2386fda..21b2fa4 100644
          ENTRY_NAME,\
          SHADER_FORMAT
  #endif
-@@ -231,7 +297,7 @@ namespace RT64 {
+@@ -231,7 +294,7 @@ namespace RT64 {
          RenderPipelineLayoutBuilder layoutBuilder;
  
          // Create shaders shared across all pipelines.
@@ -7128,7 +7125,7 @@ index 2386fda..21b2fa4 100644
          
          auto fillSamplerSet = [&](SamplerSet &set, RenderFilter filter, bool anisotropyEnabled) {
              RenderSamplerDesc samplerDesc;
-@@ -300,7 +366,7 @@ namespace RT64 {
+@@ -300,7 +363,7 @@ namespace RT64 {
              layoutBuilder.end();
              bicubicScaling.pipelineLayout = layoutBuilder.create(device);
              
@@ -7137,7 +7134,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(bicubicScaling.pipelineLayout.get(), computeShader.get(), 8, 8, 1);
              bicubicScaling.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -314,7 +380,7 @@ namespace RT64 {
+@@ -314,7 +377,7 @@ namespace RT64 {
              layoutBuilder.end();
              boxFilter.pipelineLayout = layoutBuilder.create(device);
  
@@ -7146,7 +7143,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(boxFilter.pipelineLayout.get(), computeShader.get(), 8, 8, 1);
              boxFilter.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -327,7 +393,7 @@ namespace RT64 {
+@@ -327,7 +390,7 @@ namespace RT64 {
              layoutBuilder.end();
              compose.pipelineLayout = layoutBuilder.create(device);
  
@@ -7155,7 +7152,7 @@ index 2386fda..21b2fa4 100644
              RenderGraphicsPipelineDesc pipelineDesc;
              pipelineDesc.pipelineLayout = compose.pipelineLayout.get();
              pipelineDesc.renderTargetBlend[0] = RenderBlendDesc::AlphaBlend();
-@@ -387,7 +453,7 @@ namespace RT64 {
+@@ -387,7 +450,7 @@ namespace RT64 {
              layoutBuilder.end();
              idle.pipelineLayout = layoutBuilder.create(device);
  
@@ -7164,7 +7161,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(idle.pipelineLayout.get(), computeShader.get(), 1, 1, 1);
              idle.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -400,7 +466,7 @@ namespace RT64 {
+@@ -400,7 +463,7 @@ namespace RT64 {
              layoutBuilder.end();
              fbChangesClear.pipelineLayout = layoutBuilder.create(device);
  
@@ -7173,7 +7170,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(fbChangesClear.pipelineLayout.get(), computeShader.get(), 1, 1, 1);
              fbChangesClear.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -417,10 +483,10 @@ namespace RT64 {
+@@ -417,10 +480,10 @@ namespace RT64 {
              fbReadAnyChanges.pipelineLayout = layoutBuilder.create(device);
              fbReadAnyFull.pipelineLayout = layoutBuilder.create(device);
  
@@ -7186,7 +7183,7 @@ index 2386fda..21b2fa4 100644
              fbReadAnyFull.pipeline = device->createComputePipeline(RenderComputePipelineDesc(fbReadAnyFull.pipelineLayout.get(), fullShader.get(), 8, 8, 1));
          }
  
-@@ -433,7 +499,7 @@ namespace RT64 {
+@@ -433,7 +496,7 @@ namespace RT64 {
              layoutBuilder.end();
              fbReinterpret.pipelineLayout = layoutBuilder.create(device);
  
@@ -7195,7 +7192,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(fbReinterpret.pipelineLayout.get(), computeShader.get(), 8, 8, 1);
              fbReinterpret.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -451,13 +517,13 @@ namespace RT64 {
+@@ -451,13 +514,13 @@ namespace RT64 {
              fbWriteDepth.pipelineLayout = layoutBuilder.create(device);
              fbWriteDepthMS.pipelineLayout = layoutBuilder.create(device);
  
@@ -7212,7 +7209,7 @@ index 2386fda..21b2fa4 100644
              fbWriteDepthMS.pipeline = device->createComputePipeline(RenderComputePipelineDesc(fbWriteDepthMS.pipelineLayout.get(), depthShaderMS.get(), 8, 8, 1));
          }
  
-@@ -470,7 +536,7 @@ namespace RT64 {
+@@ -470,7 +533,7 @@ namespace RT64 {
              layoutBuilder.end();
              gaussianFilterRGB3x3.pipelineLayout = layoutBuilder.create(device);
  
@@ -7221,7 +7218,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(gaussianFilterRGB3x3.pipelineLayout.get(), computeShader.get(), 8, 8, 1);
              gaussianFilterRGB3x3.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -484,7 +550,7 @@ namespace RT64 {
+@@ -484,7 +547,7 @@ namespace RT64 {
              layoutBuilder.end();
              histogramAverage.pipelineLayout = layoutBuilder.create(device);
  
@@ -7230,7 +7227,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(histogramAverage.pipelineLayout.get(), computeShader.get(), 8, 8, 1);
              histogramAverage.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -497,7 +563,7 @@ namespace RT64 {
+@@ -497,7 +560,7 @@ namespace RT64 {
              layoutBuilder.end();
              histogramClear.pipelineLayout = layoutBuilder.create(device);
  
@@ -7239,7 +7236,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(histogramClear.pipelineLayout.get(), computeShader.get(), 8, 8, 1);
              histogramClear.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -511,7 +577,7 @@ namespace RT64 {
+@@ -511,7 +574,7 @@ namespace RT64 {
              layoutBuilder.end();
              histogramSet.pipelineLayout = layoutBuilder.create(device);
  
@@ -7248,7 +7245,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(histogramSet.pipelineLayout.get(), computeShader.get(), 1, 1, 1);
              histogramSet.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -525,7 +591,7 @@ namespace RT64 {
+@@ -525,7 +588,7 @@ namespace RT64 {
              layoutBuilder.end();
              luminanceHistogram.pipelineLayout = layoutBuilder.create(device);
  
@@ -7257,7 +7254,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(luminanceHistogram.pipelineLayout.get(), computeShader.get(), 8, 8, 1);
              luminanceHistogram.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -539,7 +605,7 @@ namespace RT64 {
+@@ -539,7 +602,7 @@ namespace RT64 {
              layoutBuilder.end();
              rspModify.pipelineLayout = layoutBuilder.create(device);
  
@@ -7266,7 +7263,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(rspModify.pipelineLayout.get(), computeShader.get(), 64, 1, 1);
              rspModify.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -548,12 +614,12 @@ namespace RT64 {
+@@ -548,12 +611,12 @@ namespace RT64 {
          {
              RSPProcessDescriptorSet descriptorSet;
              layoutBuilder.begin();
@@ -7281,7 +7278,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(rspProcess.pipelineLayout.get(), computeShader.get(), 64, 1, 1);
              rspProcess.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -567,7 +633,7 @@ namespace RT64 {
+@@ -567,7 +630,7 @@ namespace RT64 {
              layoutBuilder.end();
              rspSmoothNormal.pipelineLayout = layoutBuilder.create(device);
  
@@ -7290,7 +7287,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(rspSmoothNormal.pipelineLayout.get(), computeShader.get(), 64, 1, 1);
              rspSmoothNormal.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -576,12 +642,12 @@ namespace RT64 {
+@@ -576,12 +639,12 @@ namespace RT64 {
          {
              RSPWorldDescriptorSet descriptorSet;
              layoutBuilder.begin();
@@ -7305,7 +7302,7 @@ index 2386fda..21b2fa4 100644
              RenderComputePipelineDesc pipelineDesc(rspWorld.pipelineLayout.get(), computeShader.get(), 64, 1, 1);
              rspWorld.pipeline = device->createComputePipeline(pipelineDesc);
          }
-@@ -595,7 +661,7 @@ namespace RT64 {
+@@ -595,7 +658,7 @@ namespace RT64 {
              layoutBuilder.end();
              textureCopy.pipelineLayout = layoutBuilder.create(device);
  
@@ -7314,7 +7311,7 @@ index 2386fda..21b2fa4 100644
              RenderGraphicsPipelineDesc pipelineDesc;
              pipelineDesc.pipelineLayout = textureCopy.pipelineLayout.get();
              pipelineDesc.renderTargetBlend[0] = RenderBlendDesc::Copy();
-@@ -615,15 +681,15 @@ namespace RT64 {
+@@ -615,15 +678,15 @@ namespace RT64 {
              layoutBuilder.end();
              textureDecode.pipelineLayout = layoutBuilder.create(device);
  
@@ -7333,7 +7330,7 @@ index 2386fda..21b2fa4 100644
  
              VideoInterfaceDescriptorSet nearestDescriptorSet(samplerLibrary.nearest.borderBorder.get());
              VideoInterfaceDescriptorSet linearDescriptorSet(samplerLibrary.linear.borderBorder.get());
-@@ -636,7 +702,11 @@ namespace RT64 {
+@@ -636,7 +699,11 @@ namespace RT64 {
              RenderGraphicsPipelineDesc pipelineDesc;
              pipelineDesc.vertexShader = fullScreenVertexShader.get();
              pipelineDesc.pixelShader = regularShader.get();
@@ -7345,7 +7342,7 @@ index 2386fda..21b2fa4 100644
              pipelineDesc.renderTargetBlend[0] = RenderBlendDesc::Copy();
              pipelineDesc.renderTargetCount = 1;
              pipelineDesc.pipelineLayout = videoInterfaceNearest.pipelineLayout.get();
-@@ -657,7 +727,7 @@ namespace RT64 {
+@@ -657,7 +724,7 @@ namespace RT64 {
              videoInterfacePixel.pipeline = device->createGraphicsPipeline(pipelineDesc);
  
              // FXAA reads the presented image back at window size, so it samples with clamped edges.
@@ -7354,7 +7351,7 @@ index 2386fda..21b2fa4 100644
              VideoInterfaceDescriptorSet fxaaDescriptorSet(samplerLibrary.linear.clampClamp.get());
              layoutBuilder.begin();
              layoutBuilder.addPushConstant(0, 0, sizeof(float) * 4, RenderShaderStageFlag::PIXEL);
-@@ -681,7 +751,7 @@ namespace RT64 {
+@@ -681,7 +748,7 @@ namespace RT64 {
          RenderPipelineLayoutBuilder layoutBuilder;
  
          // Create shaders shared across all pipelines.
@@ -7363,7 +7360,7 @@ index 2386fda..21b2fa4 100644
  
          // Select shader blobs based on sample count.
          const void *TextureResolvePSBlob = nullptr;
-@@ -766,6 +836,41 @@ namespace RT64 {
+@@ -766,6 +833,41 @@ namespace RT64 {
          }
          else
  #   endif
@@ -7405,7 +7402,7 @@ index 2386fda..21b2fa4 100644
          if (shaderFormat == RenderShaderFormat::SPIRV) {
              RtCopyDepthToColorPSBlob = RtCopyDepthToColorPSBlobSPIRV;
              RtCopyDepthToColorPSBlobSize = std::size(RtCopyDepthToColorPSBlobSPIRV);
-@@ -799,6 +904,7 @@ namespace RT64 {
+@@ -799,6 +901,7 @@ namespace RT64 {
                  break;
              }
          }
@@ -7413,7 +7410,7 @@ index 2386fda..21b2fa4 100644
          else {
              assert(false && "Unknown shader format.");
          }
-@@ -813,7 +919,7 @@ namespace RT64 {
+@@ -813,7 +916,7 @@ namespace RT64 {
              fbChangesDrawColor.pipelineLayout = layoutBuilder.create(device);
              fbChangesDrawDepth.pipelineLayout = layoutBuilder.create(device);
  
@@ -7422,7 +7419,7 @@ index 2386fda..21b2fa4 100644
              RenderGraphicsPipelineDesc pipelineDesc;
              pipelineDesc.pipelineLayout = fbChangesDrawColor.pipelineLayout.get();
              pipelineDesc.renderTargetBlend[0] = RenderBlendDesc::Copy();
-@@ -824,13 +930,13 @@ namespace RT64 {
+@@ -824,13 +927,13 @@ namespace RT64 {
              pipelineDesc.multisampling = multisampling;
              fbChangesDrawColor.pipeline = device->createGraphicsPipeline(pipelineDesc);
  
@@ -7438,7 +7435,7 @@ index 2386fda..21b2fa4 100644
              fbChangesDrawDepth.pipeline = device->createGraphicsPipeline(pipelineDesc);
          }
  
-@@ -843,8 +949,8 @@ namespace RT64 {
+@@ -843,8 +946,8 @@ namespace RT64 {
              layoutBuilder.end();
              rs64Terrain.pipelineLayout = layoutBuilder.create(device);
  
@@ -7449,7 +7446,7 @@ index 2386fda..21b2fa4 100644
              RenderGraphicsPipelineDesc pipelineDesc;
              pipelineDesc.renderTargetFormat[0] = RenderTarget::colorBufferFormat(usesHDR);
              pipelineDesc.renderTargetBlend[0] = RenderBlendDesc::Copy();
-@@ -852,7 +958,7 @@ namespace RT64 {
+@@ -852,7 +955,7 @@ namespace RT64 {
              pipelineDesc.vertexShader = terrainVS.get();
              pipelineDesc.pixelShader = terrainPS.get();
              pipelineDesc.multisampling = multisampling;
@@ -7458,7 +7455,18 @@ index 2386fda..21b2fa4 100644
              pipelineDesc.depthEnabled = true;
              pipelineDesc.depthFunction = RenderComparisonFunction::LESS;
              pipelineDesc.depthWriteEnabled = true;
-@@ -876,7 +982,7 @@ namespace RT64 {
+@@ -864,7 +967,9 @@ namespace RT64 {
+             pipelineDesc.renderTargetBlend[0] = RenderBlendDesc::AlphaBlend();
+             rs64TerrainWater.pipeline = device->createGraphicsPipeline(pipelineDesc);
+ 
+-#   ifndef __APPLE__
++            // Not in WGSL either: the packs sample a binding array of textures, which WebGPU has no form for, and the
++            // terrain draws without them (rt64_framebuffer_renderer.cpp checks for the pipeline).
++#   if !defined(__APPLE__) && !defined(RT64_WGSL)
+ 
+             // With the bindless texture cache (not texture slots), variants that also sample texture pack replacements from it (set 1).
+             if (!textureSlots) {
+@@ -876,7 +981,7 @@ namespace RT64 {
                  layoutBuilder.end();
                  rs64TerrainPacks.pipelineLayout = layoutBuilder.create(device);
  
@@ -7467,7 +7475,7 @@ index 2386fda..21b2fa4 100644
                  pipelineDesc.pixelShader = packsPS.get();
                  pipelineDesc.pipelineLayout = rs64TerrainPacks.pipelineLayout.get();
                  pipelineDesc.renderTargetBlend[0] = RenderBlendDesc::Copy();
-@@ -897,14 +1003,14 @@ namespace RT64 {
+@@ -897,14 +1002,14 @@ namespace RT64 {
              rs64Lights.pipelineLayout = layoutBuilder.create(device);
              rs64LightsDebug.pipelineLayout = layoutBuilder.create(device);
  
@@ -7484,16 +7492,18 @@ index 2386fda..21b2fa4 100644
              pipelineDesc.depthEnabled = false;
              pipelineDesc.depthWriteEnabled = false;
  
-@@ -935,7 +1041,7 @@ namespace RT64 {
+@@ -935,7 +1040,9 @@ namespace RT64 {
          }
  
          // RS64 sun shadows: inline RayQuery against the per-frame scene, only on devices with ray queries.
 -#   ifndef __APPLE__
++            // Not in WGSL either: the packs sample a binding array of textures, which WebGPU has no form for, and the
++            // terrain draws without them (rt64_framebuffer_renderer.cpp checks for the pipeline).
 +#   if !defined(__APPLE__) && !defined(RT64_WGSL)
          if (device->getCapabilities().rayQuery) {
              // Traced passes: sets 0-2 = raster common + bindless textures (cutout alpha test), set 3 = RS64 traced resources.
              FramebufferRendererDescriptorCommonSet tracedCommonSet(samplerLibrary, device->getCapabilities().raytracing);
-@@ -953,14 +1059,14 @@ namespace RT64 {
+@@ -953,14 +1060,14 @@ namespace RT64 {
              rs64Shadows.pipelineLayout = tracedLayout();
              rs64ShadowsDebug.pipelineLayout = tracedLayout();
  
@@ -7510,7 +7520,7 @@ index 2386fda..21b2fa4 100644
              pipelineDesc.depthEnabled = false;
              pipelineDesc.depthWriteEnabled = false;
  
-@@ -983,7 +1089,7 @@ namespace RT64 {
+@@ -983,7 +1090,7 @@ namespace RT64 {
  
              // Soft shadows: trace into an RGBA16F mask (shadow, blur radius, view distance), blur H into a ping texture, blur V and darken the colour target.
              rs64ShadowsSoft.pipelineLayout = tracedLayout();
@@ -7519,7 +7529,7 @@ index 2386fda..21b2fa4 100644
              RenderGraphicsPipelineDesc maskDesc = pipelineDesc;
              maskDesc.pixelShader = softShader.get();
              // Three targets: mask (shadow, radius, distance code, AO), indirect light (GI + reflections rgb) and the horizon mirror's (RS64TraceOut).
-@@ -1011,8 +1117,8 @@ namespace RT64 {
+@@ -1011,8 +1118,8 @@ namespace RT64 {
              rs64ShadowBlurV.pipelineLayout = blurLayout();
              rs64ShadowBlurVDebug.pipelineLayout = blurLayout();
              rs64ShadowBlurWater.pipelineLayout = blurLayout();
@@ -7530,7 +7540,7 @@ index 2386fda..21b2fa4 100644
              maskDesc.pixelShader = blurHShader.get();
              maskDesc.pipelineLayout = rs64ShadowBlurH.pipelineLayout.get();
              rs64ShadowBlurH.pipeline = device->createGraphicsPipeline(maskDesc);
-@@ -1022,7 +1128,7 @@ namespace RT64 {
+@@ -1022,7 +1129,7 @@ namespace RT64 {
              layoutBuilder.addDescriptorSet(temporalSet);
              layoutBuilder.end();
              rs64ShadowTemporal.pipelineLayout = layoutBuilder.create(device);
@@ -7539,7 +7549,7 @@ index 2386fda..21b2fa4 100644
              maskDesc.pixelShader = temporalShader.get();
              maskDesc.pipelineLayout = rs64ShadowTemporal.pipelineLayout.get();
              rs64ShadowTemporal.pipeline = device->createGraphicsPipeline(maskDesc);
-@@ -1042,7 +1148,7 @@ namespace RT64 {
+@@ -1042,7 +1149,7 @@ namespace RT64 {
              rs64ShadowBlurV.pipeline = device->createGraphicsPipeline(compDesc);
  
              // Water reflections: added after the compose (result = dst + src), as an absolute colour the UNORM compose factors cannot carry.
@@ -7548,7 +7558,7 @@ index 2386fda..21b2fa4 100644
              RenderBlendDesc add = compose;
              add.srcBlend = RenderBlend::ONE;
              add.dstBlend = RenderBlend::ONE;
-@@ -1065,8 +1171,8 @@ namespace RT64 {
+@@ -1065,8 +1172,8 @@ namespace RT64 {
              };
              rs64WaterMirror.pipelineLayout = mirrorLayout();
              rs64WaterMirrorNeg.pipelineLayout = mirrorLayout();
@@ -7559,7 +7569,7 @@ index 2386fda..21b2fa4 100644
              compDesc.pixelShader = mirrorShader.get();
              compDesc.renderTargetBlend[0] = add;
              compDesc.pipelineLayout = rs64WaterMirror.pipelineLayout.get();
-@@ -1081,7 +1187,7 @@ namespace RT64 {
+@@ -1081,7 +1188,7 @@ namespace RT64 {
              // Shadowed point lights: the light pass with one RayQuery per ranked light, same blends as rs64Lights.
              rs64LightsShadowed.pipelineLayout = tracedLayout();
              rs64LightsShadowedDebug.pipelineLayout = tracedLayout();
@@ -7568,7 +7578,7 @@ index 2386fda..21b2fa4 100644
              pipelineDesc.pixelShader = lightsShadowedShader.get();
              RenderBlendDesc tint = RenderBlendDesc::Copy();
              tint.blendEnabled = true;
-@@ -1109,7 +1215,7 @@ namespace RT64 {
+@@ -1109,7 +1216,7 @@ namespace RT64 {
              // Fog shafts: the fog the sun doesn't reach, subtracted from the game's fog.
              rs64FogShafts.pipelineLayout = tracedLayout();
              rs64FogShaftsDebug.pipelineLayout = tracedLayout();
@@ -7577,7 +7587,7 @@ index 2386fda..21b2fa4 100644
              pipelineDesc.pixelShader = fogShader.get();
              RenderBlendDesc sub = RenderBlendDesc::Copy();
              sub.blendEnabled = true;
-@@ -1161,7 +1267,7 @@ namespace RT64 {
+@@ -1161,7 +1268,7 @@ namespace RT64 {
              pipelineDesc.depthEnabled = true;
              pipelineDesc.depthFunction = RenderComparisonFunction::ALWAYS;
              pipelineDesc.depthWriteEnabled = true;
@@ -7586,7 +7596,7 @@ index 2386fda..21b2fa4 100644
              pipelineDesc.pipelineLayout = rtCopyColorToDepth.pipelineLayout.get();
              pipelineDesc.pixelShader = colorToDepthShader.get();
              pipelineDesc.multisampling = RenderMultisampling();
-@@ -1183,7 +1289,7 @@ namespace RT64 {
+@@ -1183,7 +1290,7 @@ namespace RT64 {
              layoutBuilder.end();
              postProcess.pipelineLayout = layoutBuilder.create(device);
  
@@ -7595,7 +7605,7 @@ index 2386fda..21b2fa4 100644
              RenderGraphicsPipelineDesc pipelineDesc;
              pipelineDesc.pipelineLayout = postProcess.pipelineLayout.get();
              pipelineDesc.renderTargetBlend[0] = RenderBlendDesc::AlphaBlend();
-@@ -1198,17 +1304,25 @@ namespace RT64 {
+@@ -1198,17 +1305,25 @@ namespace RT64 {
          // Raytracing debug.
          {
              FramebufferRendererDescriptorCommonSet descriptorCommonSet(samplerLibrary, deviceCapabilities.raytracing);
@@ -7625,7 +7635,7 @@ index 2386fda..21b2fa4 100644
              RenderGraphicsPipelineDesc pipelineDesc;
              pipelineDesc.pipelineLayout = debug.pipelineLayout.get();
              pipelineDesc.renderTargetBlend[0] = RenderBlendDesc::AlphaBlend();
-@@ -1232,10 +1346,10 @@ namespace RT64 {
+@@ -1232,10 +1347,10 @@ namespace RT64 {
              rspVertexTestZ.pipelineLayout = layoutBuilder.create(device);
              rspVertexTestZMS.pipelineLayout = layoutBuilder.create(device);
  
