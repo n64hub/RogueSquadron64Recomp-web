@@ -39,6 +39,8 @@ include(${CMAKE_SOURCE_DIR}/lib/N64Recomp-browser/frontend/build_speed.cmake)
 if (EXISTS "${CMAKE_SOURCE_DIR}/web/rt64_shaders.txt")
     set(RT64_PREBUILT_SHADER_LIST "${CMAKE_SOURCE_DIR}/web/rt64_shaders.txt" CACHE FILEPATH "" FORCE)
 endif()
+# EXISTS is read only as the build configures, so a list added to (or taken from) web/ configures it again.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/web")
 
 set(RT64_STATIC ON CACHE BOOL "" FORCE)
 # rt64 runs file_to_c at build time, so a cross build (this one) takes one built for the host.
