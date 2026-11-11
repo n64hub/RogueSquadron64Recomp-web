@@ -43,6 +43,7 @@
 #include "video/rt64_render_context.h"  // recomp::create_render_context
 #include "video/video_config.h"
 #include "main/renderdoc_capture.h"
+#include "main/web_page.h"
 #include <mutex>
 
 #ifdef RS64_MCP
@@ -177,11 +178,16 @@ ultramodern::gfx_callbacks_t::gfx_data_t create_gfx()
         exit(EXIT_FAILURE);
     }
 
-    // Force-feedback sticks only; missing haptic support just means no rumble on them.
+#ifndef __EMSCRIPTEN__
+
+    // Force-feedback sticks only; missing haptic support just means no rumble on them. A page has none: Emscripten's
+    // SDL2 has no haptic subsystem, and a pad rumbles through SDL_GameControllerRumble.
     if (SDL_InitSubSystem(SDL_INIT_HAPTIC) != 0)
     {
         fprintf(stderr, "[input] haptic init failed (force-feedback sticks won't rumble): %s\n", SDL_GetError());
     }
+
+#endif
 
 #ifdef __ANDROID__
 
@@ -259,6 +265,9 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
 
 #if defined(__APPLE__)
     window_flags |= SDL_WINDOW_METAL;
+#elif defined(__EMSCRIPTEN__)
+    // On a page the window is the canvas, which the page sizes in CSS pixels and SDL follows; RT64 draws on it with
+    // WebGPU. Not SDL_WINDOW_ALLOW_HIGHDPI: at the device's pixels a laptop's 2x scale would draw four times as many.
 #elif !defined(_WIN32)
     window_flags |= SDL_WINDOW_VULKAN;
 #endif
@@ -585,6 +594,11 @@ static void enter_app_bundle_data_dir()
 
 #endif
 
+#ifdef __EMSCRIPTEN__
+// The code mods' code, recompiled ahead of time and linked in: a page has no live recompiler (web/page.cmake makes it).
+void rs64_register_precompiled_mods();
+#endif
+
 int main(int argc, char* argv[])
 {
 
@@ -600,6 +614,10 @@ int main(int argc, char* argv[])
 
 #ifdef __APPLE__
     enter_app_bundle_data_dir();
+#endif
+
+#ifdef __EMSCRIPTEN__
+    rs64::web::enter_home();
 #endif
 
     if (int rc = rs64::cli::apply_args(argc, argv); rc >= 0)
@@ -748,6 +766,10 @@ int main(int argc, char* argv[])
     rs64_register_overlays();
     rs64_register_mod_events(rs64_register_patches());
 
+#ifdef __EMSCRIPTEN__
+    rs64_register_precompiled_mods();
+#endif
+
     // Use the working directory as the config/data path (portable mode).
     recomp::register_config_path(std::filesystem::current_path());
 
@@ -804,7 +826,26 @@ int main(int argc, char* argv[])
     // Re-check after any import attempt so is_rom_valid reflects the new file.
     recomp::check_all_stored_roms();
 
-#ifdef __ANDROID__
+#if defined(__EMSCRIPTEN__)
+
+    // On a page: the launcher until the player starts the game, the ROM kept in HOME (rs64::web::enter_home).
+    std::string rom_problem;
+    const std::string picked_folder = "/tmp/rs64-picked";
+
+    while (rs64::web::launcher(recomp::is_rom_valid(rs_game_id), rom_problem, picked_folder) != 1)
+    {
+        const std::filesystem::path picked = std::filesystem::path(picked_folder) / "rom";
+        const recomp::RomValidationError r = recomp::select_rom(picked, rs_game_id);
+        std::error_code ec;
+        std::filesystem::remove(picked, ec);
+
+        fprintf(stderr, "[ROM] picked file: validation %d\n", (int)r);
+
+        recomp::check_all_stored_roms();
+        rom_problem = (r == recomp::RomValidationError::Good) ? "" : rom_problem_text(r) + "Load your " + kRomName + " ROM.";
+    }
+
+#elif defined(__ANDROID__)
 
     // No ROM yet: ask for one with the system file picker until a valid one is imported, or the player quits.
     std::string rom_problem;

@@ -1,0 +1,67 @@
+# The files of his forks where his changes and N64Recomp-browser's web support meet, one per line: <project> <path in
+# its checkout>. tools/build_web.sh applies N64Recomp-browser's patches without them, then web/patches/<project>.patch,
+# the web support hand-merged over his code in them, then what N64Recomp-browser changed in them since the commit
+# below (apply.cmake --since).
+# merged from N64Recomp-browser 73144095de33975c9973083c536c215cb252a5e0
+N64ModernRuntime librecomp/include/librecomp/addresses.hpp
+N64ModernRuntime librecomp/include/librecomp/mods.hpp
+N64ModernRuntime librecomp/include/librecomp/rsp.hpp
+N64ModernRuntime librecomp/src/mods.cpp
+N64ModernRuntime librecomp/src/overlays.cpp
+N64ModernRuntime librecomp/src/recomp.cpp
+N64ModernRuntime librecomp/src/sp.cpp
+N64ModernRuntime ultramodern/src/audio.cpp
+N64ModernRuntime ultramodern/src/events.cpp
+N64ModernRuntime ultramodern/src/mesgqueue.cpp
+N64ModernRuntime ultramodern/src/threadqueue.cpp
+N64Recomp include/recomp.h
+N64Recomp src/cgenerator.cpp
+plume CMakeLists.txt
+plume examples/CMakeLists.txt
+plume examples/cube/main.cpp
+plume examples/triangle/main.cpp
+plume plume_render_interface.h
+rt64 CMakeLists.txt
+rt64 src/common/rt64_emulator_configuration.cpp
+rt64 src/common/rt64_emulator_configuration.h
+rt64 src/common/rt64_tmem_hasher.h
+rt64 src/gui/rt64_file_dialog.cpp
+rt64 src/hle/rt64_application.cpp
+rt64 src/hle/rt64_framebuffer_changes.cpp
+rt64 src/hle/rt64_framebuffer_changes.h
+rt64 src/hle/rt64_framebuffer_manager.cpp
+rt64 src/hle/rt64_framebuffer_manager.h
+rt64 src/hle/rt64_game_frame.cpp
+rt64 src/hle/rt64_present_queue.cpp
+rt64 src/hle/rt64_present_queue.h
+rt64 src/hle/rt64_rdp.cpp
+rt64 src/hle/rt64_rsp.cpp
+rt64 src/hle/rt64_state.cpp
+rt64 src/hle/rt64_state.h
+rt64 src/hle/rt64_vi.cpp
+rt64 src/hle/rt64_workload.h
+rt64 src/hle/rt64_workload_queue.cpp
+rt64 src/render/rt64_framebuffer_renderer.cpp
+rt64 src/render/rt64_framebuffer_renderer.h
+rt64 src/render/rt64_native_target.cpp
+rt64 src/render/rt64_raster_shader.cpp
+rt64 src/render/rt64_raster_shader.h
+rt64 src/render/rt64_raster_shader_cache.cpp
+rt64 src/render/rt64_raster_shader_cache.h
+rt64 src/render/rt64_render_target_manager.cpp
+rt64 src/render/rt64_rsp_processor.cpp
+rt64 src/render/rt64_shader_library.cpp
+rt64 src/rhi/rt64_render_hooks.cpp
+rt64 src/rhi/rt64_render_hooks.h
+rt64 src/shaders/FbReadAnyChangesCS.hlsl
+rt64 src/shaders/FbReadAnyFullCS.hlsl
+rt64 src/shaders/FbRendererCommon.hlsli
+rt64 src/shaders/PostBlendDitherNoisePS.hlsl
+rt64 src/shaders/RSPSmoothNormalCS.hlsl
+rt64 src/shaders/RasterPS.hlsl
+rt64 src/shaders/RasterVS.hlsl
+rt64 src/shaders/TextureDecodeCS.hlsl
+rt64 src/shaders/TextureDecoder.hlsli
+rt64 src/shaders/TextureSampler.hlsli
+rt64 src/shared/rt64_raster_params.h
+rt64 src/shared/rt64_rdp_params.h

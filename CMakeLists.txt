@@ -54,6 +54,12 @@ endif()
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+# The page for a browser (tools/build_web.sh) is web/page.cmake's.
+if (EMSCRIPTEN)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/web/page.cmake)
+    return()
+endif()
+
 # Android consumes the code the Windows build generated (N64Recomp, RSPRecomp, state table); it cannot run those tools itself.
 if (ANDROID)
     foreach(f RecompiledFuncs/funcs.h src/game/state_table.inl

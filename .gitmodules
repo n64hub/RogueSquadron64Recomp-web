@@ -13,3 +13,6 @@
 [submodule "syms"]
 	path = syms
 	url = https://github.com/MikeSemicolonD/RogueSquadron64RecompSyms.git
+[submodule "lib/N64Recomp-browser"]
+	path = lib/N64Recomp-browser
+	url = https://github.com/n64hub/N64Recomp-browser

@@ -1,0 +1,396 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4c22b1b..35cbac6 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -47,16 +47,28 @@ if(PLUME_D3D12_AGILITY_SDK_ENABLED)
+ endif()
+ 
+ # Print status messages
+-message(STATUS "Plume - Building with backends: Vulkan=1 Metal=${APPLE} D3D12=${WIN32}")
++if(EMSCRIPTEN)
++    message(STATUS "Plume - Building with backends: WebGPU=1")
++else()
++    message(STATUS "Plume - Building with backends: Vulkan=1 Metal=${APPLE} D3D12=${WIN32}")
++endif()
+ message(STATUS "Plume - SDL Vulkan integration: ${PLUME_SDL_VULKAN_ENABLED}")
+ message(STATUS "Plume - D3D12 Agility SDK: ${PLUME_D3D12_AGILITY_SDK_ENABLED}")
+ message(STATUS "Plume - Building examples: ${PLUME_BUILD_EXAMPLES}")
+ 
+ # Basic source files that are always included
+-set(PLUME_SOURCES
+-    plume_vulkan.cpp
+-    plume_vulkan.h
+-)
++if(EMSCRIPTEN)
++    # The browser has WebGPU only.
++    set(PLUME_SOURCES
++        plume_webgpu.cpp
++        plume_webgpu.h
++    )
++else()
++    set(PLUME_SOURCES
++        plume_vulkan.cpp
++        plume_vulkan.h
++    )
++endif()
+ 
+ # Platform-specific files
+ if(APPLE)
+@@ -80,6 +92,12 @@ elseif(WIN32)
+     endif()
+ endif()
+ 
++# Runs any backend on one thread: see plume_device_thread.h.
++list(APPEND PLUME_SOURCES
++    plume_device_thread.cpp
++    plume_device_thread.h
++)
++
+ # Create target
+ add_library(plume STATIC ${PLUME_SOURCES})
+ 
+@@ -106,6 +124,11 @@ if(WIN32 AND TARGET spirv-cross-hlsl)
+     target_link_libraries(plume PRIVATE spirv-cross-hlsl spirv-cross-glsl spirv-cross-core d3d11 dxgi d3dcompiler dxguid)
+ endif()
+ 
++if(EMSCRIPTEN)
++    target_compile_options(plume PUBLIC --use-port=emdawnwebgpu)
++    target_link_options(plume PUBLIC --use-port=emdawnwebgpu)
++endif()
++
+ if(PLUME_SDL_VULKAN_ENABLED)
+     target_compile_definitions(plume PUBLIC PLUME_SDL_VULKAN_ENABLED)
+     target_include_directories(plume PUBLIC ${SDL2_INCLUDE_DIRS})
+diff --git a/examples/CMakeLists.txt b/examples/CMakeLists.txt
+index bae0d0a..c342059 100644
+--- a/examples/CMakeLists.txt
++++ b/examples/CMakeLists.txt
+@@ -3,8 +3,26 @@ set(CMAKE_CXX_STANDARD 17)
+ # Enable SDL Vulkan integration
+ set(PLUME_SDL_VULKAN_ENABLED ON CACHE BOOL "Enable SDL Vulkan integration" FORCE)
+ 
+-# Find SDL2 (required for examples)
+-find_package(SDL2 REQUIRED)
++if(EMSCRIPTEN)
++    # SDL2 from Emscripten's port, the page from its default shell (a canvas with id "canvas"), the WebGPU device
++    # from plume_webgpu_device.js, and ASYNCIFY so the examples' loops can yield to the browser every frame.
++    # Configured with -DCMAKE_CXX_FLAGS=-pthread -DCMAKE_C_FLAGS=-pthread instead, an example draws from a thread of
++    # its own and the page's main thread runs the device for it (plume_device_thread.h); that needs no ASYNCIFY, and
++    # the page needs cross-origin isolation (Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers).
++    add_compile_options(-sUSE_SDL=2)
++    if(NOT CMAKE_CXX_FLAGS MATCHES "-pthread")
++        add_link_options(-sASYNCIFY)
++    endif()
++    add_link_options(-sUSE_SDL=2 -sALLOW_MEMORY_GROWTH
++        "-sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$addRunDependency,$removeRunDependency"
++        "--pre-js=${CMAKE_SOURCE_DIR}/plume_webgpu_device.js")
++    set(CMAKE_EXECUTABLE_SUFFIX ".html")
++    set(SDL2_INCLUDE_DIRS "")
++    set(SDL2_LIBRARIES "")
++else()
++    # Find SDL2 (required for examples)
++    find_package(SDL2 REQUIRED)
++endif()
+ 
+ # Initialize shader compilation
+ include(${CMAKE_SOURCE_DIR}/examples/cmake/PlumeShaders.cmake)
+@@ -13,3 +31,6 @@ plume_shaders_init()
+ # Add example subdirectories
+ add_subdirectory(triangle)
+ add_subdirectory(cube)
++if(EMSCRIPTEN)
++    add_subdirectory(webgpu_checks)
++endif()
+diff --git a/examples/cube/main.cpp b/examples/cube/main.cpp
+index 3670358..3e0c4b5 100644
+--- a/examples/cube/main.cpp
++++ b/examples/cube/main.cpp
+@@ -21,8 +21,17 @@
+ #include "shaders/cubeVert.hlsl.dxil.h"
+ #include "shaders/cubeFrag.hlsl.dxil.h"
+ #endif
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++#ifdef __EMSCRIPTEN_PTHREADS__
++#include "plume_device_thread.h"
++#endif
++#include "shaders/cubeVert.hlsl.wgsl.h"
++#include "shaders/cubeFrag.hlsl.wgsl.h"
++#else
+ #include "shaders/cubeVert.hlsl.spirv.h"
+ #include "shaders/cubeFrag.hlsl.spirv.h"
++#endif
+ #ifdef __APPLE__
+ #include "shaders/cubeVert.hlsl.metal.h"
+ #include "shaders/cubeFrag.hlsl.metal.h"
+@@ -31,6 +40,7 @@
+ namespace plume {
+     extern std::unique_ptr<RenderInterface> CreateMetalInterface();
+     extern std::unique_ptr<RenderInterface> CreateD3D12Interface();
++    extern std::unique_ptr<RenderInterface> CreateWebGPUInterface();
+     #if PLUME_SDL_VULKAN_ENABLED
+     extern std::unique_ptr<RenderInterface> CreateVulkanInterface(RenderWindow sdlWindow);
+     #else
+@@ -370,10 +380,17 @@ namespace plume {
+                 fragmentShader = ctx.m_device->createShader(cubeFragBlobMSL, sizeof(cubeFragBlobMSL), "PSMain", shaderFormat);
+                 break;
+ #endif
++#ifdef __EMSCRIPTEN__
++            case RenderShaderFormat::WGSL:
++                vertexShader = ctx.m_device->createShader(cubeVertBlobWGSL, sizeof(cubeVertBlobWGSL), "VSMain", shaderFormat);
++                fragmentShader = ctx.m_device->createShader(cubeFragBlobWGSL, sizeof(cubeFragBlobWGSL), "PSMain", shaderFormat);
++                break;
++#else
+             case RenderShaderFormat::SPIRV:
+                 vertexShader = ctx.m_device->createShader(cubeVertBlobSPIRV, sizeof(cubeVertBlobSPIRV), "VSMain", shaderFormat);
+                 fragmentShader = ctx.m_device->createShader(cubeFragBlobSPIRV, sizeof(cubeFragBlobSPIRV), "PSMain", shaderFormat);
+                 break;
++#endif
+ #ifdef _WIN64
+             case RenderShaderFormat::DXIL:
+                 vertexShader = ctx.m_device->createShader(cubeVertBlobDXIL, sizeof(cubeVertBlobDXIL), "VSMain", shaderFormat);
+@@ -531,7 +548,9 @@ namespace plume {
+         SDL_GetWindowWMInfo(window, &wmInfo);
+ 
+         CubeContext ctx;
+-#if defined(__linux__)
++#if defined(__EMSCRIPTEN__)
++        createContext(ctx, renderInterface, "#canvas", apiName);
++#elif defined(__linux__)
+         createContext(ctx, renderInterface, { wmInfo.info.x11.display, wmInfo.info.x11.window }, apiName);
+ #elif defined(__APPLE__)
+         SDL_MetalView view = SDL_Metal_CreateView(window);
+@@ -557,6 +576,13 @@ namespace plume {
+             }
+ 
+             render(ctx);
++#if defined(__EMSCRIPTEN_PTHREADS__)
++            // This is a thread of its own, and the page's main thread shows the frames (see main()).
++            std::this_thread::sleep_for(std::chrono::milliseconds(16));
++#elif defined(__EMSCRIPTEN__)
++            // The browser shows the frame once control is back in its event loop.
++            emscripten_sleep(0);
++#endif
+         }
+ 
+         // Cleanup
+@@ -600,6 +626,14 @@ std::unique_ptr<plume::RenderInterface> CreateRenderInterface(std::string& apiNa
+         apiName = "Metal";
+         return plume::CreateMetalInterface();
+     }
++#elif defined(__EMSCRIPTEN_PTHREADS__)
++    // Built with -pthread: the device belongs to the page's main thread, which this runs on, and the example draws
++    // from a thread of its own through plume_device_thread.h.
++    apiName = "WebGPU, drawn from a thread";
++    return plume::CreateDeviceThreadInterface(plume::CreateEmscriptenDeviceThread(pthread_self()), []() { return plume::CreateWebGPUInterface(); });
++#elif defined(__EMSCRIPTEN__)
++    apiName = "WebGPU";
++    return plume::CreateWebGPUInterface();
+ #else
+     apiName = "Vulkan";
+     return plume::CreateVulkanInterface();
+@@ -609,6 +643,17 @@ std::unique_ptr<plume::RenderInterface> CreateRenderInterface(std::string& apiNa
+ int main(int argc, char* argv[]) {
+     std::string apiName = "Unknown";
+     auto renderInterface = CreateRenderInterface(apiName);
++
++#ifdef __EMSCRIPTEN_PTHREADS__
++    // Draw from another thread and return, so that this one, the page's main thread, goes back to its event loop and
++    // runs the device's work as it arrives.
++    std::thread([apiName, renderInterface = std::move(renderInterface)]() {
++        plume::CubeExample(renderInterface.get(), apiName);
++    }).detach();
++
++    return 0;
++#endif
++
+     plume::CubeExample(renderInterface.get(), apiName);
+     return 0;
+ }
+diff --git a/examples/triangle/main.cpp b/examples/triangle/main.cpp
+index 090c4ba..be07b06 100644
+--- a/examples/triangle/main.cpp
++++ b/examples/triangle/main.cpp
+@@ -19,8 +19,17 @@
+ #include "shaders/triangleVert.hlsl.dxil.h"
+ #include "shaders/triangleFrag.hlsl.dxil.h"
+ #endif
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++#ifdef __EMSCRIPTEN_PTHREADS__
++#include "plume_device_thread.h"
++#endif
++#include "shaders/triangleVert.hlsl.wgsl.h"
++#include "shaders/triangleFrag.hlsl.wgsl.h"
++#else
+ #include "shaders/triangleVert.hlsl.spirv.h"
+ #include "shaders/triangleFrag.hlsl.spirv.h"
++#endif
+ #ifdef __APPLE__
+ #include "shaders/triangleVert.hlsl.metal.h"
+ #include "shaders/triangleFrag.hlsl.metal.h"
+@@ -30,6 +39,7 @@
+ namespace plume {
+     extern std::unique_ptr<RenderInterface> CreateMetalInterface();
+     extern std::unique_ptr<RenderInterface> CreateD3D12Interface();
++    extern std::unique_ptr<RenderInterface> CreateWebGPUInterface();
+     #if PLUME_SDL_VULKAN_ENABLED
+     extern std::unique_ptr<RenderInterface> CreateVulkanInterface(RenderWindow sdlWindow);
+     #else
+@@ -102,10 +112,17 @@ namespace plume {
+                 fragmentShader = ctx.m_device->createShader(triangleFragBlobMSL, sizeof(triangleFragBlobMSL), "PSMain", shaderFormat);
+                 break;
+ #endif
++#ifdef __EMSCRIPTEN__
++            case RenderShaderFormat::WGSL:
++                vertexShader = ctx.m_device->createShader(triangleVertBlobWGSL, sizeof(triangleVertBlobWGSL), "VSMain", shaderFormat);
++                fragmentShader = ctx.m_device->createShader(triangleFragBlobWGSL, sizeof(triangleFragBlobWGSL), "PSMain", shaderFormat);
++                break;
++#else
+             case RenderShaderFormat::SPIRV:
+                 vertexShader = ctx.m_device->createShader(triangleVertBlobSPIRV, sizeof(triangleVertBlobSPIRV), "VSMain", shaderFormat);
+                 fragmentShader = ctx.m_device->createShader(triangleFragBlobSPIRV, sizeof(triangleFragBlobSPIRV), "PSMain", shaderFormat);
+                 break;
++#endif
+ #ifdef _WIN64
+             case RenderShaderFormat::DXIL:
+                 vertexShader = ctx.m_device->createShader(triangleVertBlobDXIL, sizeof(triangleVertBlobDXIL), "VSMain", shaderFormat);
+@@ -317,7 +334,9 @@ namespace plume {
+         SDL_GetWindowWMInfo(window, &wmInfo);
+ 
+         TestContext ctx;
+-#if defined(__linux__)
++#if defined(__EMSCRIPTEN__)
++        createContext(ctx, renderInterface, "#canvas", apiName);
++#elif defined(__linux__)
+         createContext(ctx, renderInterface, { wmInfo.info.x11.display, wmInfo.info.x11.window }, apiName);
+ #elif defined(__APPLE__)
+         SDL_MetalView view = SDL_Metal_CreateView(window);
+@@ -346,6 +365,13 @@ namespace plume {
+             }
+ 
+             render(ctx);
++#if defined(__EMSCRIPTEN_PTHREADS__)
++            // This is a thread of its own, and the page's main thread shows the frames (see main()).
++            std::this_thread::sleep_for(std::chrono::milliseconds(16));
++#elif defined(__EMSCRIPTEN__)
++            // The browser shows the frame once control is back in its event loop.
++            emscripten_sleep(0);
++#endif
+         }
+ 
+         // Transition the active swap chain render target out of the present state to avoid live references to the resource
+@@ -390,6 +416,14 @@ std::unique_ptr<plume::RenderInterface> CreateRenderInterface(std::string &apiNa
+         apiName = "Metal";
+         return plume::CreateMetalInterface();
+     }
++#elif defined(__EMSCRIPTEN_PTHREADS__)
++    // Built with -pthread: the device belongs to the page's main thread, which this runs on, and the example draws
++    // from a thread of its own through plume_device_thread.h.
++    apiName = "WebGPU, drawn from a thread";
++    return plume::CreateDeviceThreadInterface(plume::CreateEmscriptenDeviceThread(pthread_self()), []() { return plume::CreateWebGPUInterface(); });
++#elif defined(__EMSCRIPTEN__)
++    apiName = "WebGPU";
++    return plume::CreateWebGPUInterface();
+ #else
+     apiName = "Vulkan";
+     return plume::CreateVulkanInterface();
+@@ -399,6 +433,17 @@ std::unique_ptr<plume::RenderInterface> CreateRenderInterface(std::string &apiNa
+ int main(int argc, char* argv[]) {
+     std::string apiName = "Unknown";
+     auto renderInterface = CreateRenderInterface(apiName);
++
++#ifdef __EMSCRIPTEN_PTHREADS__
++    // Draw from another thread and return, so that this one, the page's main thread, goes back to its event loop and
++    // runs the device's work as it arrives.
++    std::thread([apiName, renderInterface = std::move(renderInterface)]() {
++        plume::RenderInterfaceTest(renderInterface.get(), apiName);
++    }).detach();
++
++    return 0;
++#endif
++
+     plume::RenderInterfaceTest(renderInterface.get(), apiName);
+     return 0;
+ }
+diff --git a/plume_render_interface.h b/plume_render_interface.h
+index fe9ca7e..5b95cfe 100644
+--- a/plume_render_interface.h
++++ b/plume_render_interface.h
+@@ -7,6 +7,8 @@
+ 
+ #pragma once
+ 
++#include <atomic>
++#include <chrono>
+ #include <climits>
+ 
+ #include "plume_render_interface_types.h"
+@@ -26,6 +28,10 @@ namespace plume {
+         virtual void setName(const std::string &name) = 0;
+         virtual uint64_t getDeviceAddress() const = 0;
+ 
++        // False while map() would return data the GPU has yet to deliver, on a backend that delivers it asynchronously
++        // (WebGPU's READBACK buffers). A thread other than the device's can wait for it to turn true.
++        virtual bool isMapReady() { return true; }
++
+         // Concrete implementation shortcuts.
+         inline RenderBufferReference at(uint64_t offset) const {
+             return RenderBufferReference(this, offset);
+@@ -59,6 +65,10 @@ namespace plume {
+         virtual ~RenderPipeline() { }
+         virtual void setName(const std::string &name) = 0;
+         virtual RenderPipelineProgram getProgram(const std::string &name) const = 0;
++
++        // False until the backend has built a pipeline created with buildInBackground (WebGPU's
++        // createRenderPipelineAsync). A thread other than the device's can wait for it to turn true.
++        virtual bool isReady() { return true; }
+     };
+ 
+     struct RenderPipelineLayout {
+@@ -89,6 +99,31 @@ namespace plume {
+         virtual ~RenderSwapChain() { }
+         virtual bool present(uint32_t textureIndex, RenderCommandSemaphore **waitSemaphores, uint32_t waitSemaphoreCount) = 0;
+         virtual void wait() = 0;
++
++        // False while wait() would hold the caller, on a backend that can't block the thread it runs on to wait (WebGPU,
++        // which learns that a present's work is done in a callback on the device's thread). A thread other than the
++        // device's can wait for it to turn true.
++        virtual bool isWaitReady() { return true; }
++
++        // Holds the calling thread until about the given time where the backend learns of the display's frames as they
++        // come (WebGPU's animation frames): where timed sleeps end late, it ends on the first frame less than half a
++        // frame before that time, or at the time if none comes by then; elsewhere at the time itself, woken by the
++        // frames before it and spinning from the last. False at once where it can't, and the caller sleeps itself.
++        // Any thread but the device's may call it.
++#if defined(__EMSCRIPTEN__)
++        virtual bool sleepUntil(std::chrono::steady_clock::time_point time) { return false; }
++#endif
++
++        // wait() on a thread other than the device's, counting as in flight the presents its caller has queued for the
++        // device's thread that haven't reached present() yet (`queued`). False at once where only the device's thread can
++        // tell (every backend but WebGPU), and the caller waits through it. Not behind __EMSCRIPTEN__ so that
++        // plume_device_thread.cpp's native test reaches it.
++        virtual bool waitOnCaller(const std::atomic<uint32_t> &queued) { return false; }
++
++        // Whether the window is hidden, where the backend can tell: a page in a tab behind another, or minimized (WebGPU).
++        // Nothing presented then is seen, and a caller can stop presenting. Any thread may call it.
++        virtual bool isHidden() const { return false; }
++
+         virtual bool resize() = 0;
+         virtual bool needsResize() const = 0;
+         virtual void setVsyncEnabled(bool vsyncEnabled) = 0;
+@@ -259,6 +294,13 @@ namespace plume {
+         virtual RenderSampleCounts getSampleCountsSupported(RenderFormat format) const = 0;
+         virtual bool beginCapture() = 0;
+         virtual bool endCapture() = 0;
++#if defined(__EMSCRIPTEN__)
++        // A backend that delivers a READBACK buffer's data asynchronously (WebGPU's) calls this back each time some
++        // arrives, on the thread it delivers it on, so a thread waiting for isMapReady() can be answered then.
++        virtual void setReadbackCallback(void (*callback)()) { }
++        // isLost() above: on WebGPU, once the page has another device in its place (plume_webgpu_device.js), the
++        // interface's createDevice() makes a new one to carry on with. Any thread may ask.
++#endif
+     };
+ 
+     struct RenderInterface {

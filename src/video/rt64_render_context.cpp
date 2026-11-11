@@ -459,6 +459,12 @@ public:
         appCore.window = wm.info.android.window;
         rs64::android::set_window_frame_rate(wm.info.android.window);
 
+#elif defined(__EMSCRIPTEN__)
+
+        // On a page RT64 draws on the canvas, which SDL's window is.
+        (void)window_handle;
+        appCore.window = "#canvas";
+
 #elif defined(__linux__)
         appCore.window = window_handle;
 #elif defined(__APPLE__)
@@ -529,6 +535,15 @@ public:
         // ROGUESQ_RT_INTERP=<hz> re-enables it; the majority-vote pacing + node-id paths stay behind it.
         app->userConfig.refreshRate = UC::RefreshRate::Original;
         app->userConfig.refreshRateTarget = 60;
+
+#ifdef __EMSCRIPTEN__
+
+        // A page interpolates to the display's rate and draws at the canvas's size, whatever the desktop build
+        // defaults to (N64Recomp-browser's rule for every page); roguesq_video.json keeps the player's own choice.
+        app->userConfig.refreshRate = UC::RefreshRate::Display;
+        app->userConfig.resolution = UC::Resolution::WindowIntegerScale;
+
+#endif
 
         // A Raspberry Pi's GPU can't keep up above the N64's own resolution, and RT64's framebuffer write-back costs it about half its frame time.
         if (is_raspberry_pi()) {

@@ -1,0 +1,20 @@
+# The image tools/build_web.sh builds the page in: rush-2049-recomp's (its tools/docker/Dockerfile, the image
+# N64Recomp-browser's tools/publish_pages.sh builds every page in), instruction for instruction, so Docker's cache shares
+# its layers, and one layer of this game's own at the end. emsdk at the version N64Recomp-browser's CI uses, ninja,
+# ccache, clang with lld (the recompilers and this game's build tools natively), naga 30.0.1 (WGSL from SPIR-V; dxc
+# comes with rt64) and spirv-opt.
+# build_web.sh tags it with a hash of this file, so a change here makes the next run build a new one.
+FROM emscripten/emsdk:6.0.12
+RUN apt-get update && apt-get install -y --no-install-recommends ninja-build ccache clang lld git curl ca-certificates \
+    libsdl2-dev libgtk-3-dev xz-utils unzip p7zip-full && rm -rf /var/lib/apt/lists/*
+ENV CARGO_HOME=/opt/cargo RUSTUP_HOME=/opt/rustup
+RUN curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && /opt/cargo/bin/cargo install naga-cli --version 30.0.1 --locked \
+    && cp /opt/cargo/bin/naga /usr/local/bin/ && rm -rf /opt/cargo/registry
+RUN apt-get update && apt-get install -y --no-install-recommends xdelta3 make pkg-config libdbus-1-dev libfreetype-dev \
+    python3-venv && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends spirv-tools && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends binutils-mips-linux-gnu rsync && rm -rf /var/lib/apt/lists/*
+RUN git config --system http.version HTTP/1.1
+# This game's: MIPS GCC, which builds patches/src and the code mods as the desktop build does (CMakeLists.txt,
+# tools/mods/code_mod.cmake).
+RUN apt-get update && apt-get install -y --no-install-recommends gcc-mips-linux-gnu && rm -rf /var/lib/apt/lists/*
