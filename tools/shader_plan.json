@@ -2,13 +2,14 @@
   "page": "RogueSquadron64Recomp.html",
   "header": [
     "Recorded by RogueSquadron64Recomp-web's tools/shader_plan.json with N64Recomp-browser's tools/record_shaders.mjs, in",
-    "headless Chrome: section 0 is the boot (the launcher, the intro, SELECT GAME, ENTER NAME and AVAILABLE CRAFT, each",
-    "press repeated until the screen word at 0x800CDAC4 moves), then a section a mission of the sixteen, set at AVAILABLE",
-    "CRAFT as the port's own --boot-target level:N does: A on the craft, its chapter's crawl for the first of each",
-    "chapter, its opening cinematic and about 25 s of flying, with blasters, a",
-    "missile and the pause menu. Not played: the three bonus missions, the options, the passcodes, a mission's end and",
-    "its debriefing; a shader they need that the list lacks draws with the ubershader in Chrome until it is built behind",
-    "the game, and in Firefox it is built before the next frame and remembered for the next visit."
+    "headless Chrome, on a build in 4:3 and again (--add) on one in widescreen, the page's default: section 0 is the boot",
+    "(the launcher, the intro, SELECT GAME, ENTER NAME and AVAILABLE CRAFT, each press repeated until the screen word at",
+    "0x800CDAC4 moves), then a section a mission of the sixteen, set at AVAILABLE CRAFT as the port's own --boot-target",
+    "level:N does: A on the craft, its chapter's crawl for the first of each chapter, its opening cinematic and about 25 s",
+    "of flying, with blasters, a missile and the pause menu. Not played: the three bonus missions, the options, the",
+    "passcodes, a mission's end and its debriefing; a shader they need that the list lacks draws with the ubershader in",
+    "Chrome until it is built behind the game, and in Firefox it is built before the next frame and remembered for the next",
+    "visit."
   ],
   "load": [
     [
