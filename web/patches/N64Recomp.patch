@@ -1,8 +1,30 @@
 diff --git a/include/recomp.h b/include/recomp.h
-index c07053c..19d239f 100644
+index c07053c..c906236 100644
 --- a/include/recomp.h
 +++ b/include/recomp.h
-@@ -286,6 +286,43 @@ static inline void do_sdr(uint8_t* rdram, gpr offset, gpr reg, gpr val) {
+@@ -111,7 +111,20 @@ typedef uint64_t gpr;
+     ((gpr)(int32_t)((a) - (b)))
+ 
+ // 64-bit hosts reserve 4GB after rdram so any guest address faults instead of hitting host memory; 32-bit hosts can't, so they wrap into the 512MB window.
+-#if UINTPTR_MAX == 0xFFFFFFFFu
++// A recomp whose code runs from TLB-mapped addresses below 0x80000000 and defines RECOMP_KUSEG_WINDOW for every target
++// it builds gets, on wasm, KUSEG's first 16 MB in a window right after kseg0's 512 MB, which librecomp allocates with
++// RDRAM; a KUSEG address past it wraps inside it (N64Recomp-browser's web support).
++#if defined(__wasm__) && defined(RECOMP_KUSEG_WINDOW)
++#define RECOMP_KUSEG_WINDOW_BASE 0x20000000u
++#define RECOMP_KUSEG_WINDOW_SIZE 0x01000000u
++
++static inline uint32_t recomp_rdram_offset(gpr address) {
++    uint32_t a = (uint32_t)address;
++    return (a & 0x80000000u) ? a - 0x80000000u : RECOMP_KUSEG_WINDOW_BASE + (a & (RECOMP_KUSEG_WINDOW_SIZE - 1));
++}
++
++#define RDRAM_OFFSET(addr) recomp_rdram_offset(addr)
++#elif UINTPTR_MAX == 0xFFFFFFFFu
+ #define RDRAM_OFFSET(addr) (((uint32_t)(addr) - 0x80000000u) & 0x1FFFFFFFu)
+ #else
+ #define RDRAM_OFFSET(addr) ((addr) - 0xFFFFFFFF80000000)
+@@ -286,6 +299,43 @@ static inline void do_sdr(uint8_t* rdram, gpr offset, gpr reg, gpr val) {
      MEM_W(0, dword_address + 0) = hi;
  }
  
@@ -46,7 +68,7 @@ index c07053c..19d239f 100644
  static inline uint32_t get_cop1_cs() {
      uint32_t rounding_mode = 0;
      switch (fegetround()) {
-@@ -329,6 +366,7 @@ static inline void set_cop1_cs(uint32_t val) {
+@@ -329,6 +379,7 @@ static inline void set_cop1_cs(uint32_t val) {
      }
      fesetround(round);
  }
@@ -54,7 +76,7 @@ index c07053c..19d239f 100644
  
  #define S32(val) \
      ((int32_t)(val))
-@@ -404,7 +442,11 @@ static inline int64_t do_cvt_l_s(float val) {
+@@ -404,7 +455,11 @@ static inline int64_t do_cvt_l_s(float val) {
      do_cvt_l_s(val);
  
  static inline int32_t do_cvt_w_d(double val) {
@@ -66,7 +88,7 @@ index c07053c..19d239f 100644
      return (rounded >= -2147483648.0 && rounded <= 2147483647.0) ? (int32_t)rounded : INT32_MIN;
  }
  
-@@ -413,7 +455,11 @@ static inline int32_t do_cvt_w_d(double val) {
+@@ -413,7 +468,11 @@ static inline int32_t do_cvt_w_d(double val) {
  
  // Same contract as do_cvt_w_d: NaN and out-of-range give INT64_MIN on every host.
  static inline int64_t do_cvt_l_d(double val) {
@@ -78,7 +100,7 @@ index c07053c..19d239f 100644
      return (rounded >= -9223372036854775808.0 && rounded < 9223372036854775808.0) ? (int64_t)rounded : INT64_MIN;
  }
  
-@@ -495,6 +541,58 @@ void recomp_syscall_handler(uint8_t* rdram, recomp_context* ctx, int32_t instruc
+@@ -495,6 +554,58 @@ void recomp_syscall_handler(uint8_t* rdram, recomp_context* ctx, int32_t instruc
  
  void pause_self(uint8_t *rdram);
  
