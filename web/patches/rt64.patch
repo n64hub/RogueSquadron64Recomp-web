@@ -3768,7 +3768,7 @@ index db32704..a85c405 100644
  
          void reset();
 diff --git a/src/hle/rt64_workload_queue.cpp b/src/hle/rt64_workload_queue.cpp
-index a7c0a36..abb6b7f 100644
+index a7c0a36..8e8e39e 100644
 --- a/src/hle/rt64_workload_queue.cpp
 +++ b/src/hle/rt64_workload_queue.cpp
 @@ -13,6 +13,13 @@
@@ -4386,10 +4386,10 @@ index a7c0a36..abb6b7f 100644
 +                for (uint32_t w = 0; w < frameWorkloadCount; w++) {
 +                    workloadIndices.emplace_back(uint32_t((processCursor + w) % workloads.size()));
 +                }
++
++                curFrame.set(*this, workloadIndices.data(), frameWorkloadCount);
  
 -                // Detect the color image to interpolate for this workload.
-+                curFrame.set(*this, workloadIndices.data(), frameWorkloadCount);
-+
 +                // Detect the color image to interpolate for this frame: the last one its workloads draw that can be.
                  RenderTargetKey interpolationTargetKey;
 +                uint32_t interpolationTargetWorkload = 0;
@@ -4430,7 +4430,21 @@ index a7c0a36..abb6b7f 100644
                      matchingProfiler.reset();
                      matchingProfiler.start();
                      curFrame.match(ext.workloadGraphicsWorker, *this, prevFrame, ext.workloadVelocityUploader, velocityUploaderUsed, tileInterpolationUsed, lookAtInterpolationUsed);
-@@ -1121,16 +1506,19 @@ namespace RT64 {
+@@ -1108,6 +1493,13 @@ namespace RT64 {
+                 uint32_t displayFrames = 1;
+                 if (generateInterpolatedFrames) {
+                     logicalTicks += frameSpan;
++                    // A frame of one VI gets less than a display frame in the variable timing above (a frame span of the display's
++                    // rate against a tick step of 60) wherever the display is under 60 Hz, as a page's measured rate can be (56 in
++                    // headless Chrome): no display frames, and the time each frame gets below divided by none, which traps in wasm. Such
++                    // a frame is drawn once, a tick step after the last.
++                    if ((logicalTicks - displayTicks) < tickStep) {
++                        displayTicks = logicalTicks - tickStep;
++                    }
+                     displayFrames = uint32_t((logicalTicks - displayTicks) / tickStep);
+                     deltaTimeMs = 1.0f / float(workloadConfig.targetRate);
+ 
+@@ -1121,16 +1513,19 @@ namespace RT64 {
                      assert(((logicalTicks - displayTicks) <= (frameSpan + tickStep)) && "The gap between logical ticks and display ticks can't be bigger than the target rate.");
                      assert((displayFrames > 0) && "At least one display frame must be generated.");
                  }
@@ -4453,7 +4467,7 @@ index a7c0a36..abb6b7f 100644
                      ext.sharedResources->interpolatedFramesIndex = ext.sharedResources->interpolatedFramesIndex ^ 1;
                      lastPresentId = workload.presentId;
                  }
-@@ -1144,17 +1532,38 @@ namespace RT64 {
+@@ -1144,17 +1539,38 @@ namespace RT64 {
                  }
  
                  InterpolatedFrameCounters &curFrameCounters = ext.sharedResources->interpolatedFrames[ext.sharedResources->interpolatedFramesIndex];
@@ -4492,7 +4506,7 @@ index a7c0a36..abb6b7f 100644
                      uint32_t previousSize = uint32_t(interpolatedTargets.size());
                      interpolatedTargets.resize(requiredFrames);
                      for (uint32_t i = previousSize; i < requiredFrames; i++) {
-@@ -1162,7 +1571,7 @@ namespace RT64 {
+@@ -1162,7 +1578,7 @@ namespace RT64 {
                      }
                  }
                  
@@ -4501,7 +4515,7 @@ index a7c0a36..abb6b7f 100644
                  const int64_t setupTimeMicro = workloadTimer.elapsedMicroseconds();
                  const int64_t adjustedTimeWindowMicro = originalTimeMicro - setupTimeMicro;
                  const int64_t maxTimePerFrameMicro = adjustedTimeWindowMicro / displayFrames;
-@@ -1170,6 +1579,21 @@ namespace RT64 {
+@@ -1170,6 +1586,21 @@ namespace RT64 {
                  bool skipWorkloadNow = false;
                  uint32_t targetIndex = 0;
                  uint32_t framesRendered = 0;
@@ -4523,7 +4537,7 @@ index a7c0a36..abb6b7f 100644
                  int64_t renderTimeTotalMicro = 0;
                  for (uint32_t frame = 0; (frame < displayFrames) && !skipWorkloadNow; frame++) {
                      // Evaluate if this frame should be skipped. Measure the current time and compare it to what frame is estimated should be have been rendered by now.
-@@ -1193,15 +1617,48 @@ namespace RT64 {
+@@ -1193,15 +1624,48 @@ namespace RT64 {
  
                          // Override the render target.
                          if (usingMSAA || (frame > 0)) {
@@ -4577,7 +4591,7 @@ index a7c0a36..abb6b7f 100644
                                  });
                              }
  
-@@ -1209,7 +1666,7 @@ namespace RT64 {
+@@ -1209,7 +1673,7 @@ namespace RT64 {
                          }
                      }
                      else if (workload.paused) {
@@ -4586,7 +4600,7 @@ index a7c0a36..abb6b7f 100644
                          prevFrameWeight = 1.0f - curFrameWeight;
                      }
                      else {
-@@ -1219,28 +1676,30 @@ namespace RT64 {
+@@ -1219,28 +1683,30 @@ namespace RT64 {
  
                      const bool uploadExtras = (frame == 0) && workloadConfig.raytracingEnabled;
                      if (uploadExtras) {
@@ -4626,7 +4640,7 @@ index a7c0a36..abb6b7f 100644
  
                          {
                              std::scoped_lock<std::mutex> managerLock(ext.sharedResources->interpolatedMutex);
-@@ -1271,8 +1730,43 @@ namespace RT64 {
+@@ -1271,8 +1737,43 @@ namespace RT64 {
  
                  threadConfigurationValidate();
  
