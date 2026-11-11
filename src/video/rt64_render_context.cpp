@@ -539,9 +539,11 @@ public:
 #ifdef __EMSCRIPTEN__
 
         // A page interpolates to the display's rate and draws at the canvas's size, whatever the desktop build
-        // defaults to (N64Recomp-browser's rule for every page); roguesq_video.json keeps the player's own choice.
+        // defaults to (N64Recomp-browser's rule for every page), and fills a wide canvas with the game's widescreen
+        // (Expand) rather than 4:3; roguesq_video.json keeps the player's own choice.
         app->userConfig.refreshRate = UC::RefreshRate::Display;
         app->userConfig.resolution = UC::Resolution::WindowIntegerScale;
+        app->userConfig.aspectRatio = UC::AspectRatio::Expand;
 
 #endif
 

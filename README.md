@@ -468,9 +468,11 @@ Without a Mac, the game cross-compiles from **WSL2 / Linux** with [osxcross](htt
 `tools/build_web.sh <USA 1.0 ROM>` builds the page (`build-web/RogueSquadron64Recomp.html` and its files) on Linux
 with Docker, from N64Recomp-browser's web patches over this game's forks of rt64 and the runtime: its header says
 how, and which files are merged by hand (`web/patches/`). `web/rt64_shaders.txt` is the page's prebuilt shader list,
-recorded by `tools/play_plan.json`'s route (its header says what was played), and `tools/play_plan.json` and
+recorded by `tools/shader_plan.json` (its header says what was played), and `tools/play_plan.json` and
 `tools/play_plan_extended.json` are the plans N64Recomp-browser's `tools/play_page.mjs` plays the page by. The page
-leaves out multiplayer, the texture packs' terrain shader and ray tracing, which need what a browser doesn't have.
+leaves out multiplayer, the texture packs' terrain shader and ray tracing, which need what a browser doesn't have,
+and starts in widescreen, with frame interpolation and the resolution at the window's size (Display Settings changes
+each, and the page keeps the choice).
 
 ## Architecture
 
