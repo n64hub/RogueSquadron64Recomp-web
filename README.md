@@ -472,7 +472,10 @@ recorded by `tools/shader_plan.json` (its header says what was played), and `too
 `tools/play_plan_extended.json` are the plans N64Recomp-browser's `tools/play_page.mjs` plays the page by. The page
 leaves out multiplayer, the texture packs' terrain shader and ray tracing, which need what a browser doesn't have,
 and starts in widescreen, with frame interpolation and the resolution at the window's size (Display Settings changes
-each, and the page keeps the choice).
+each, and the page keeps the choice). It copies no frame back into RDRAM (framebuffer write-back off), since the game
+never reads one and on a page each display list's copy waits 5-6 ms for the browser's readback; render to RAM stays on
+for the change detection that rides on it, with its late copy so a list doesn't wait for the GPU
+(`src/video/rt64_render_context.cpp`).
 
 ## Architecture
 

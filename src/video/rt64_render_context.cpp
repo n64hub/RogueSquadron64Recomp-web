@@ -577,6 +577,17 @@ public:
         apply_replay_display();
         rs64::video::apply_env_overrides(app->userConfig);
 
+#ifdef __EMSCRIPTEN__
+        // A page copies no frame back into RDRAM: the game never reads one (its CPU only clears a new video mode's
+        // buffers and builds its heap in a free one), and on a page each display list's copy waits 5-6 ms for the
+        // browser's readback. Render to RAM itself stays on, since this RT64's change detection of what the CPU wrote to
+        // a framebuffer rides on it (off, triangles flicker), and it still waits for the GPU at the end of every list
+        // with the write-back off (rt64_state.cpp), so its late copy is on too, with nothing to copy late: the list
+        // doesn't wait. Whatever roguesq_video.json says, the default written on a page's first run included.
+        rs64::video::set_framebuffer_writeback(false);
+        app->emulatorConfig.framebuffer.renderToRAMLate = true;
+#endif
+
         // PresentEarly (default on): the cinematic stays on one VI fb address, so RT64's
         // updateScreen never sees a VI change and would never present. ROGUESQ_HLE_PRESENT_EARLY=0 opts out.
         if (env_on("ROGUESQ_HLE_PRESENT_EARLY", true)) {
