@@ -706,7 +706,7 @@ index 7afb2e6..be8a707 100644
              VirtualFree(rdram, 0, MEM_RELEASE);
          }
 diff --git a/librecomp/src/sp.cpp b/librecomp/src/sp.cpp
-index b017462..7e3b9eb 100644
+index b017462..8930780 100644
 --- a/librecomp/src/sp.cpp
 +++ b/librecomp/src/sp.cpp
 @@ -33,6 +33,10 @@ extern "C" ULTRAMODERN_OVERRIDABLE void osSpTaskStartGo_recomp(uint8_t* rdram, r
@@ -729,6 +729,15 @@ index b017462..7e3b9eb 100644
      ultramodern::submit_rsp_task(rdram, ctx->r4);
  }
  
+@@ -63,6 +69,8 @@ extern "C" void osSpTaskYield_recomp(uint8_t* rdram, recomp_context* ctx) {
+         fflush(stderr);
+     }
+ #endif
++    // A graphics task still waiting for the renderer gets its RSP done now (ultramodern's rsp.cpp, rsp::yield_asked).
++    ultramodern::rsp::yield_asked();
+ }
+ 
+ extern "C" void osSpTaskYielded_recomp(uint8_t* rdram, recomp_context* ctx) {
 diff --git a/ultramodern/src/audio.cpp b/ultramodern/src/audio.cpp
 index cbfeb0b..9b5152a 100644
 --- a/ultramodern/src/audio.cpp
@@ -763,7 +772,7 @@ index cbfeb0b..9b5152a 100644
      if (sample_count > 0 && audio_callbacks.queue_samples) {
          audio_callbacks.queue_samples(TO_PTR(int16_t, audio_data_), sample_count);
 diff --git a/ultramodern/src/events.cpp b/ultramodern/src/events.cpp
-index b4119b7..dc53879 100644
+index b4119b7..84e02c6 100644
 --- a/ultramodern/src/events.cpp
 +++ b/ultramodern/src/events.cpp
 @@ -161,6 +161,24 @@ struct ViState {
@@ -1036,7 +1045,20 @@ index b4119b7..dc53879 100644
  
          // DIAG-3: read first 4 bytes at VI ORIGIN to distinguish black/white/content
          // framebuffers. If fb_first == 0x00010001, the VI is pointing at a
-@@ -456,6 +679,11 @@ void sp_complete() {
+@@ -450,12 +673,24 @@ void vi_thread_func() {
+ }
+ 
+ void sp_complete() {
++#if ULTRAMODERN_YIELDS_END_QUEUED_GRAPHICS
++    // A graphics task's RSP done went already if a yield was asked of it while it waited (rsp::yield_asked).
++    if ((std::this_thread::get_id() == events_context.sp.gfx_thread.get_id()) && !ultramodern::rsp::graphics_sp_due()) {
++        return;
++    }
++#endif
++
+     [[maybe_unused]] uint8_t* rdram = events_context.rdram;
+     std::lock_guard lock{ events_context.message_mutex };
+     ultramodern::enqueue_external_message_src(events_context.sp.mq, events_context.sp.msg, false, ultramodern::EventMessageSource::Sp);
  }
  
  void dp_complete() {
@@ -1048,7 +1070,7 @@ index b4119b7..dc53879 100644
      [[maybe_unused]] uint8_t* rdram = events_context.rdram;
      std::lock_guard lock{ events_context.message_mutex };
      static const bool s_lfq = [](){ const char* e = std::getenv("ROGUESQ_LOG_FRAMEQ"); return e && *e && *e != '0'; }();
-@@ -604,6 +832,9 @@ void gfx_thread_func(uint8_t* rdram, moodycamel::LightweightSemaphore* thread_re
+@@ -604,6 +839,9 @@ void gfx_thread_func(uint8_t* rdram, moodycamel::LightweightSemaphore* thread_re
      while (!exited) {
          // Try to pull an action from the queue
          Action action;
