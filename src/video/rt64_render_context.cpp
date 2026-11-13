@@ -784,6 +784,13 @@ public:
         diag().frame_profile(pres0);
     }
 
+#ifdef __EMSCRIPTEN__
+    // RT64 builds what the game's boot draws with before the game starts (RT64::Application::prepareForGame()).
+    void prepare_for_game() override {
+        if (app) app->prepareForGame();
+    }
+#endif
+
     void shutdown() override {
 
         if (app) {

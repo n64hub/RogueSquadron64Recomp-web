@@ -2,7 +2,7 @@
 # its checkout>. tools/build_web.sh applies N64Recomp-browser's patches without them, then web/patches/<project>.patch,
 # the web support hand-merged over its code in them, then what N64Recomp-browser changed in them since the commit
 # below (apply.cmake --since).
-# merged from N64Recomp-browser 18bfcba598c9c125a5fbf88ac0da6cb3590351af
+# merged from N64Recomp-browser 394a5748c0d91b25c5d9bc3adfee583015e3b965
 N64ModernRuntime librecomp/include/librecomp/addresses.hpp
 N64ModernRuntime librecomp/include/librecomp/mods.hpp
 N64ModernRuntime librecomp/include/librecomp/rsp.hpp
