@@ -777,7 +777,7 @@ index cbfeb0b..9b5152a 100644
      if (sample_count > 0 && audio_callbacks.queue_samples) {
          audio_callbacks.queue_samples(TO_PTR(int16_t, audio_data_), sample_count);
 diff --git a/ultramodern/src/events.cpp b/ultramodern/src/events.cpp
-index b4119b7..f4d847e 100644
+index b4119b7..b4b5774 100644
 --- a/ultramodern/src/events.cpp
 +++ b/ultramodern/src/events.cpp
 @@ -141,7 +141,11 @@ struct RdpRangeBatchAction {
@@ -827,7 +827,7 @@ index b4119b7..f4d847e 100644
      moodycamel::BlockingConcurrentQueue<OSTask*> sp_task_queue{};
      moodycamel::ConcurrentQueue<OSThread*> deleted_threads{};
  } events_context{};
-@@ -292,6 +314,182 @@ uint64_t total_vis = 0;
+@@ -292,6 +314,195 @@ uint64_t total_vis = 0;
  
  
  extern std::atomic_bool exited;
@@ -978,6 +978,18 @@ index b4119b7..f4d847e 100644
 +// list the renderer was still reading pointed at what the map's load had put there since: a function pointer read
 +// 0x00010001 and the page trapped, or it trapped in malloc, or it stopped drawing. Held, the game sees the stall as a
 +// console would never show it, one long VI.
++// A stall is two VIs, not six: a page whose every list took about 100 ms left the game six VIs behind each one. In
++// Firefox, its tab hidden on a busy host, Paper Mario's lists took 50-230 ms each (its render to RAM's readbacks waiting
++// on the page's thread), the game stepped its logic three times behind each, and as its intro story handed over to the
++// attract demo it freed what the list in hand pointed at: it trapped in its heap allocator, the free list corrupt, or
++// stopped drawing for good, 4-6 s after the hide in 3 plays of 3. Held after two VIs, as a console's RDP is done with a
++// list a VI or two after it starts, it came through and went on into the demo.
++// Nor once the renderer has told the game the list in hand is done (renderer::rdp_done): it reads nothing more of RDRAM
++// for it, and what is left is its own work, the wait for a busy GPU included. Held there, the game's clock stopped for
++// nothing, and its sound with it, which nothing makes up afterwards: Rush 2049's page in Firefox, uncapped and its tab
++// hidden, held its VIs 91-105 times a play (9.5-11.9 s in all) and its sound ran 238,000-253,000 frames short, most of
++// it through a 5 s wait for a section's prebuilt shaders as its attract race starts; lifted at the RDP's done, it held 4
++// times (only before its sound starts) and lost none.
 +// Both sides touch only lines a game fork's own patches to this file leave alone (DKR-R-web's rewrite the VI messages'
 +// block and the graphics thread's actions).
 +namespace {
@@ -986,8 +998,9 @@ index b4119b7..f4d847e 100644
 +    // in Firefox (each worker's own performance.timeOrigin), so only the VI thread's own clock times it.
 +    std::atomic<uint32_t> renderer_loop_turns{ 0 };
 +
-+    // Six VIs: a list or screen update takes a few ms, and on a phone 10-90 ms at the first list of a new screen.
-+    constexpr std::chrono::milliseconds renderer_stall_limit{ 100 };
++    // Two VIs: a list or screen update takes a few ms. The VI thread looks once a VI, so a game gets two or three VIs of
++    // an action before the hold. Over a timed wait's tick in Firefox (15.6 ms), so an idle thread isn't taken for one.
++    constexpr std::chrono::milliseconds renderer_stall_limit{ 30 };
 +
 +    // Whether the graphics thread has made no turn for renderer_stall_limit, as the VI thread (its only caller) has seen.
 +    // None before its loop's first turn.
@@ -996,7 +1009,7 @@ index b4119b7..f4d847e 100644
 +        static std::chrono::steady_clock::time_point seen_time{};
 +        const uint32_t turns = renderer_loop_turns.load();
 +        const auto now = std::chrono::steady_clock::now();
-+        if ((turns == 0) || (turns != seen_turns)) {
++        if ((turns == 0) || (turns != seen_turns) || ultramodern::renderer::rdp_done_pending()) {
 +            seen_turns = turns;
 +            seen_time = now;
 +            return false;
@@ -1010,7 +1023,7 @@ index b4119b7..f4d847e 100644
  extern moodycamel::LightweightSemaphore graphics_shutdown_ready;
  
  void set_dummy_vi(bool odd);
-@@ -360,10 +558,31 @@ void vi_thread_func() {
+@@ -360,10 +571,31 @@ void vi_thread_func() {
              // printf("Skipping the next VI wait\n");
              next = std::chrono::high_resolution_clock::now();
          }
@@ -1042,7 +1055,7 @@ index b4119b7..f4d847e 100644
          if (new_total_vis > total_vis + 1) {
              //printf("Skipped % " PRId64 " frames in VI interupt thread!\n", new_total_vis - total_vis - 1);
          }
-@@ -376,12 +595,20 @@ void vi_thread_func() {
+@@ -376,12 +608,20 @@ void vi_thread_func() {
              odd = !odd;
          }
  
@@ -1063,7 +1076,7 @@ index b4119b7..f4d847e 100644
  
          // DIAG-3: read first 4 bytes at VI ORIGIN to distinguish black/white/content
          // framebuffers. If fb_first == 0x00010001, the VI is pointing at a
-@@ -450,12 +677,24 @@ void vi_thread_func() {
+@@ -450,12 +690,24 @@ void vi_thread_func() {
  }
  
  void sp_complete() {
@@ -1088,7 +1101,7 @@ index b4119b7..f4d847e 100644
      [[maybe_unused]] uint8_t* rdram = events_context.rdram;
      std::lock_guard lock{ events_context.message_mutex };
      static const bool s_lfq = [](){ const char* e = std::getenv("ROGUESQ_LOG_FRAMEQ"); return e && *e && *e != '0'; }();
-@@ -570,6 +809,15 @@ void ultramodern::trigger_config_action() {
+@@ -570,6 +822,15 @@ void ultramodern::trigger_config_action() {
      events_context.action_queue.enqueue(UpdateConfigAction{});
  }
  
@@ -1104,7 +1117,7 @@ index b4119b7..f4d847e 100644
  std::atomic<ultramodern::renderer::SetupResult> renderer_setup_result = ultramodern::renderer::SetupResult::Success;
  std::atomic<ultramodern::renderer::GraphicsApi> renderer_chosen_api = ultramodern::renderer::GraphicsApi::Auto;
  
-@@ -604,6 +852,9 @@ void gfx_thread_func(uint8_t* rdram, moodycamel::LightweightSemaphore* thread_re
+@@ -604,6 +865,9 @@ void gfx_thread_func(uint8_t* rdram, moodycamel::LightweightSemaphore* thread_re
      while (!exited) {
          // Try to pull an action from the queue
          Action action;
@@ -1114,7 +1127,7 @@ index b4119b7..f4d847e 100644
          if (events_context.action_queue.wait_dequeue_timed(action, 1ms)) {
              // Determine the action type and act on it
              if (const auto* task_action = std::get_if<SpTaskAction>(&action)) {
-@@ -698,6 +949,10 @@ void gfx_thread_func(uint8_t* rdram, moodycamel::LightweightSemaphore* thread_re
+@@ -698,6 +962,10 @@ void gfx_thread_func(uint8_t* rdram, moodycamel::LightweightSemaphore* thread_re
                      renderer_context->send_rdp_range(r.first, r.second);
                  }
              }
