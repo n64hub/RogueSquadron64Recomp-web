@@ -396,7 +396,7 @@ index fe9ca7e..5b95cfe 100644
  
      struct RenderInterface {
 diff --git a/plume_vulkan.cpp b/plume_vulkan.cpp
-index 460eb4f..19359e1 100644
+index 460eb4f..2309872 100644
 --- a/plume_vulkan.cpp
 +++ b/plume_vulkan.cpp
 @@ -915,6 +915,10 @@ namespace plume {
@@ -494,7 +494,39 @@ index 460eb4f..19359e1 100644
      }
  
      void VulkanCommandList::copyBufferRegion(RenderBufferReference dstBuffer, RenderBufferReference srcBuffer, uint64_t size) {
-@@ -4379,7 +4401,11 @@ namespace plume {
+@@ -3349,6 +3371,31 @@ namespace plume {
+         const VulkanTexture *srcTexture = static_cast<const VulkanTexture *>(srcLocation.texture);
+         const VulkanBuffer *dstBuffer = static_cast<const VulkanBuffer *>(dstLocation.buffer);
+         const VulkanBuffer *srcBuffer = static_cast<const VulkanBuffer *>(srcLocation.buffer);
++        if ((dstLocation.type == RenderTextureCopyType::PLACED_FOOTPRINT) && (srcLocation.type == RenderTextureCopyType::SUBRESOURCE)) {
++            // A texture read back into a buffer, as D3D12's CopyTextureRegion does it. First and on its own, so a port
++            // whose own plume has this branch further down keeps its lines as they are.
++            assert(srcTexture != nullptr);
++            assert(dstBuffer != nullptr);
++
++            const uint32_t blockWidth = RenderFormatBlockWidth(srcTexture->desc.format);
++            VkBufferImageCopy imageCopy = {};
++            imageCopy.bufferOffset = dstLocation.placedFootprint.offset;
++            imageCopy.bufferRowLength = ((dstLocation.placedFootprint.rowWidth + blockWidth - 1) / blockWidth) * blockWidth;
++            imageCopy.bufferImageHeight = ((dstLocation.placedFootprint.height + blockWidth - 1) / blockWidth) * blockWidth;
++            imageCopy.imageSubresource.aspectMask = toAspectFlags(srcTexture->desc.format, srcTexture->desc.flags);
++            imageCopy.imageSubresource.baseArrayLayer = srcLocation.subresource.arrayIndex;
++            imageCopy.imageSubresource.layerCount = 1;
++            imageCopy.imageSubresource.mipLevel = srcLocation.subresource.mipLevel;
++            imageCopy.imageOffset.x = (srcBox != nullptr) ? srcBox->left : 0;
++            imageCopy.imageOffset.y = (srcBox != nullptr) ? srcBox->top : 0;
++            imageCopy.imageOffset.z = (srcBox != nullptr) ? srcBox->front : 0;
++            imageCopy.imageExtent.width = dstLocation.placedFootprint.width;
++            imageCopy.imageExtent.height = dstLocation.placedFootprint.height;
++            imageCopy.imageExtent.depth = dstLocation.placedFootprint.depth;
++            vkCmdCopyImageToBuffer(vk, srcTexture->vk, toImageLayout(srcTexture->textureLayout), dstBuffer->vk, 1, &imageCopy);
++            return;
++        }
++
+         if ((dstLocation.type == RenderTextureCopyType::SUBRESOURCE) && (srcLocation.type == RenderTextureCopyType::PLACED_FOOTPRINT)) {
+             assert(dstTexture != nullptr);
+             assert(srcBuffer != nullptr);
+@@ -4379,7 +4426,11 @@ namespace plume {
          capabilities.sampleLocations = (sampleLocationProperties.sampleLocationSampleCounts != 0);
          capabilities.resolveRegion = true;
          capabilities.resolveModes = false;

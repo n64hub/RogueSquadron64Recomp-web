@@ -1139,7 +1139,7 @@ index b4119b7..b4b5774 100644
      }
  
 diff --git a/ultramodern/src/mesgqueue.cpp b/ultramodern/src/mesgqueue.cpp
-index ff27cd1..85c01cb 100644
+index ff27cd1..fce310e 100644
 --- a/ultramodern/src/mesgqueue.cpp
 +++ b/ultramodern/src/mesgqueue.cpp
 @@ -69,6 +69,14 @@ struct QueuedMessage {
@@ -1235,6 +1235,20 @@ index ff27cd1..85c01cb 100644
  
  extern "C" void osCreateMesgQueue(RDRAM_ARG PTR(OSMesgQueue) mq_, PTR(OSMesg) msg, s32 count) {
      OSMesgQueue *mq = TO_PTR(OSMesgQueue, mq_);
+@@ -184,6 +231,13 @@ static bool rs64_is_frameq(PTR(OSMesgQueue) mq_) {
+ }
+ 
+ bool do_send(RDRAM_ARG PTR(OSMesgQueue) mq_, OSMesg msg, bool jam, bool block) {
++    // An event no queue was set for sends nothing, as libultra's event dispatch does: a game that never calls
++    // osSetEventMesg for an event (Excitebike 64's scheduler sets none for OS_EVENT_SP and waits for the DP alone)
++    // would otherwise have its message sent to a null queue, which crashes the thread that receives it. It counts as
++    // sent, so nothing requeues it.
++    if (mq_ == NULLPTR) {
++        return true;
++    }
+     OSMesgQueue* mq = TO_PTR(OSMesgQueue, mq_);
+     const bool fqlog = rs64_frameq_log() && rs64_is_frameq(mq_);
+     if (!block) {
 diff --git a/ultramodern/src/threadqueue.cpp b/ultramodern/src/threadqueue.cpp
 index 3c6556a..ee93e72 100644
 --- a/ultramodern/src/threadqueue.cpp

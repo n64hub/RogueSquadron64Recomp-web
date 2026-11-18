@@ -4,7 +4,10 @@
 # below (apply.cmake --since).
 # plume_vulkan.cpp and .h, and plume_render_interface.h: the game's plume answers a lost Vulkan device its own way
 # (its isLost() and checkLost()), which the web's is merged into.
-# merged from N64Recomp-browser ffa895caadeaa1936212bfc75b0fb4f736bf1ecc
+# rt64_vi.cpp, rt64_workload.h, rt64_workload_queue.cpp and rt64_vi_renderer.cpp: the game's RT64 has a framebuffer's
+# pixel aspect of its own (its VI::pixelAspect() from the VI's regions, ROGUESQ_VI_PIXEL_ASPECT, the aspect ratios
+# as displayed, VI space widened in hdSize), which the web's is merged into: those keep the game's.
+# merged from N64Recomp-browser 6a991659354e3fad9eec75a00908fedf89a5038e
 N64ModernRuntime librecomp/include/librecomp/addresses.hpp
 N64ModernRuntime librecomp/include/librecomp/mods.hpp
 N64ModernRuntime librecomp/include/librecomp/rsp.hpp
@@ -55,6 +58,7 @@ rt64 src/render/rt64_raster_shader_cache.h
 rt64 src/render/rt64_render_target_manager.cpp
 rt64 src/render/rt64_rsp_processor.cpp
 rt64 src/render/rt64_shader_library.cpp
+rt64 src/render/rt64_vi_renderer.cpp
 rt64 src/rhi/rt64_render_hooks.cpp
 rt64 src/rhi/rt64_render_hooks.h
 rt64 src/shaders/FbReadAnyChangesCS.hlsl
