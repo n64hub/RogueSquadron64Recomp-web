@@ -65,11 +65,14 @@ set(RS64_RECOMP_INCLUDES
     "${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/librecomp/include"
     "${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include")
 set(RS64_RECOMP_OPTIONS -fno-strict-aliasing -fwrapv -Wno-unused-variable -Werror=implicit-function-declaration
-    -include "${CMAKE_SOURCE_DIR}/include/mem_wu.h" -include "${CMAKE_SOURCE_DIR}/include/recomp_imports.h")
+    "SHELL:-include ${CMAKE_SOURCE_DIR}/include/mem_wu.h" "SHELL:-include ${CMAKE_SOURCE_DIR}/include/recomp_imports.h")
 add_library(RecompiledFuncs STATIC ${RECOMP_C_SOURCES} ${RECOMP_CXX_SOURCES} "${CMAKE_SOURCE_DIR}/src/game/toml_hooks.c")
 target_include_directories(RecompiledFuncs PRIVATE ${RS64_RECOMP_INCLUDES})
 target_compile_definitions(RecompiledFuncs PRIVATE main=rs_main)
 target_compile_options(RecompiledFuncs PRIVATE ${RS64_RECOMP_OPTIONS})
+# The game's TOML hooks call memcpy with no <string.h>, which its desktop build allows (implicit declarations off) and
+# the page doesn't: on wasm a call through a wrong implicit signature traps.
+set_source_files_properties("${CMAKE_SOURCE_DIR}/src/game/toml_hooks.c" PROPERTIES COMPILE_OPTIONS "-include;string.h")
 
 # The game's patches, recompiled by tools/build_web.sh (CMakeLists.txt's Patches ELF), and the patch ELF's bytes.
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/patches/patches_bin.c ${CMAKE_BINARY_DIR}/patches/patches_bin.h

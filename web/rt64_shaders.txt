@@ -6,7 +6,7 @@
 # of flying, with blasters, a missile and the pause menu. Not played: the three bonus missions, the options, the
 # passcodes, a mission's end and its debriefing; a shader they need that the list lacks draws with the ubershader in
 # Chrome until it is built behind the game, and in Firefox it is built before the next frame and remembered for the next
-# visit.
+# visit. Two of the boot's, drawn by the controller screens' images, are added from a play's misses.
 00504240 00080cff fc119623 ff2fffff 0ccb541b
 00552078 00088cff fc127e24 fffff3ff 088a001c
 0f0a4000 00088cff fc11fe23 fffffdff 0ccb541b
@@ -68,6 +68,8 @@ c4104a54 00180cff fc1197ff fffffe38 0ccb5410
 00552230 00080cff fc127e24 fffffdff 0bba4418
 00552230 00088cff fc127e24 fffffdff 088a0018
 00504a50 00088cff fc127e24 fffff9fc 088a0018
+c8124a50 00180cff fcffffff fffe7638 08000018
+c8124a50 00188cff fcffffff fffe7638 08000018
 section 00 Ambush at Mos Eisley
 00552038 00088cff fcffffff fffe793c 0800001c
 00552038 00088cff fc127e24 fffffdff 088a001c

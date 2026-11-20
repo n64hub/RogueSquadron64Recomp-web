@@ -599,16 +599,6 @@ RspUcodeFunc* get_rsp_microcode(const OSTask* task) {
 // Audio (SDL2)
 // ---------------------------------------------------------------------------
 
-#if defined(__EMSCRIPTEN__)
-
-// The browser build sends the same calls to its own output: SDL2's web audio reads its AudioContext from the calling thread, and the game runs on a worker.
-#define SDL_OpenAudioDevice(device, capture, desired, obtained, changes) ::rs64::audio::web::open((desired)->freq)
-#define SDL_CloseAudioDevice(id) ::rs64::audio::web::close()
-#define SDL_PauseAudioDevice(id, paused) ((void)0)
-#define SDL_QueueAudio(id, data, bytes) ::rs64::audio::web::queue((data), (bytes))
-#define SDL_GetQueuedAudioSize(id) ::rs64::audio::web::queued_bytes()
-
-#endif
 
 static SDL_AudioDeviceID audio_device = 0;
 
@@ -926,12 +916,8 @@ size_t get_frames_remaining()
     // audibly late against the picture (2026-09-08); the synth now runs on the retrace thread each VI.
     static int ms = -1;
 
-    // The browser's threads stall longer than a desktop's (shader compiles, main-thread waits), so it keeps a deeper queue.
-#if defined(__EMSCRIPTEN__)
-    static constexpr int kDefaultLatencyMs = 150;
-#else
+    // The page's sound plays on the browser's audio thread (above), so the page keeps the desktop's queue.
     static constexpr int kDefaultLatencyMs = 60;
-#endif
 
     if (ms < 0) {
         ms = env_int("ROGUESQ_AUDIO_LATENCY_MS", kDefaultLatencyMs);

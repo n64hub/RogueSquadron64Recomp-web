@@ -7,7 +7,13 @@
 # rt64_vi.cpp, rt64_workload.h, rt64_workload_queue.cpp and rt64_vi_renderer.cpp: the game's RT64 has a framebuffer's
 # pixel aspect of its own (its VI::pixelAspect() from the VI's regions, ROGUESQ_VI_PIXEL_ASPECT, the aspect ratios
 # as displayed, VI space widened in hdSize), which the web's is merged into: those keep the game's.
-# merged from N64Recomp-browser 6a991659354e3fad9eec75a00908fedf89a5038e
+# plume_webgpu.cpp and .h, and the WebGPU parts of rt64: the game's own browser build has a WebGPU backend of its own
+# (PLUME_WEBGPU_ENABLED, RT64_WEBGPU), which the page doesn't define: its files are the web's whole, and the rest keeps
+# the game's code beside the web's.
+# addresses.hpp: the page's RDRAM is the web's 512 MB, which RDRAM_OFFSET wraps a 32-bit host's addresses into, not
+# the 64 MB of the game's own browser build.
+# merged from N64Recomp-browser 372cca0dd4671349fd7e9e1a3be7587341163e22
+N64ModernRuntime librecomp/CMakeLists.txt
 N64ModernRuntime librecomp/include/librecomp/addresses.hpp
 N64ModernRuntime librecomp/include/librecomp/mods.hpp
 N64ModernRuntime librecomp/include/librecomp/rsp.hpp
@@ -15,10 +21,13 @@ N64ModernRuntime librecomp/src/mods.cpp
 N64ModernRuntime librecomp/src/overlays.cpp
 N64ModernRuntime librecomp/src/recomp.cpp
 N64ModernRuntime librecomp/src/sp.cpp
+N64ModernRuntime ultramodern/include/ultramodern/ultra64.h
 N64ModernRuntime ultramodern/src/audio.cpp
 N64ModernRuntime ultramodern/src/events.cpp
 N64ModernRuntime ultramodern/src/mesgqueue.cpp
 N64ModernRuntime ultramodern/src/threadqueue.cpp
+N64ModernRuntime ultramodern/src/threads.cpp
+N64ModernRuntime ultramodern/src/timer.cpp
 N64Recomp include/recomp.h
 N64Recomp src/cgenerator.cpp
 plume CMakeLists.txt
@@ -28,12 +37,18 @@ plume examples/triangle/main.cpp
 plume plume_render_interface.h
 plume plume_vulkan.cpp
 plume plume_vulkan.h
+plume plume_webgpu.cpp
+plume plume_webgpu.h
 rt64 CMakeLists.txt
 rt64 src/common/rt64_emulator_configuration.cpp
 rt64 src/common/rt64_emulator_configuration.h
+rt64 src/common/rt64_thread.cpp
 rt64 src/common/rt64_tmem_hasher.h
 rt64 src/gui/rt64_file_dialog.cpp
+rt64 src/gui/rt64_inspector.cpp
 rt64 src/hle/rt64_application.cpp
+rt64 src/hle/rt64_draw_call.h
+rt64 src/hle/rt64_framebuffer.h
 rt64 src/hle/rt64_framebuffer_changes.cpp
 rt64 src/hle/rt64_framebuffer_changes.h
 rt64 src/hle/rt64_framebuffer_manager.cpp
@@ -43,14 +58,19 @@ rt64 src/hle/rt64_present_queue.cpp
 rt64 src/hle/rt64_present_queue.h
 rt64 src/hle/rt64_rdp.cpp
 rt64 src/hle/rt64_rsp.cpp
+rt64 src/hle/rt64_shared_queue_resources.h
 rt64 src/hle/rt64_state.cpp
 rt64 src/hle/rt64_state.h
 rt64 src/hle/rt64_vi.cpp
 rt64 src/hle/rt64_workload.h
 rt64 src/hle/rt64_workload_queue.cpp
+rt64 src/hle/rt64_workload_queue.h
+rt64 src/render/rt64_buffer_uploader.cpp
+rt64 src/render/rt64_buffer_uploader.h
 rt64 src/render/rt64_framebuffer_renderer.cpp
 rt64 src/render/rt64_framebuffer_renderer.h
 rt64 src/render/rt64_native_target.cpp
+rt64 src/render/rt64_projection_processor.cpp
 rt64 src/render/rt64_raster_shader.cpp
 rt64 src/render/rt64_raster_shader.h
 rt64 src/render/rt64_raster_shader_cache.cpp
@@ -61,16 +81,30 @@ rt64 src/render/rt64_shader_library.cpp
 rt64 src/render/rt64_vi_renderer.cpp
 rt64 src/rhi/rt64_render_hooks.cpp
 rt64 src/rhi/rt64_render_hooks.h
+rt64 src/shaders/BicubicScalingCS.hlsl
+rt64 src/shaders/BoxFilterCS.hlsl
 rt64 src/shaders/FbReadAnyChangesCS.hlsl
 rt64 src/shaders/FbReadAnyFullCS.hlsl
+rt64 src/shaders/FbReinterpretCS.hlsl
 rt64 src/shaders/FbRendererCommon.hlsli
+rt64 src/shaders/FbWriteColorCS.hlsl
+rt64 src/shaders/FbWriteDepthCS.hlsl
+rt64 src/shaders/GaussianFilterRGB3x3CS.hlsl
+rt64 src/shaders/HistogramAverageCS.hlsl
+rt64 src/shaders/HistogramSetCS.hlsl
 rt64 src/shaders/PostBlendDitherNoisePS.hlsl
+rt64 src/shaders/RSPModifyCS.hlsl
 rt64 src/shaders/RSPProcessCS.hlsl
 rt64 src/shaders/RSPSmoothNormalCS.hlsl
+rt64 src/shaders/RSPWorldCS.hlsl
 rt64 src/shaders/RasterPS.hlsl
 rt64 src/shaders/RasterVS.hlsl
 rt64 src/shaders/TextureDecodeCS.hlsl
 rt64 src/shaders/TextureDecoder.hlsli
 rt64 src/shaders/TextureSampler.hlsli
+rt64 src/shared/rt64_gpu_tile.h
 rt64 src/shared/rt64_raster_params.h
 rt64 src/shared/rt64_rdp_params.h
+rt64 src/shared/rt64_rsp_light.h
+rt64 src/shared/rt64_rsp_lookat.h
+rt64 src/shared/rt64_rsp_viewport.h
