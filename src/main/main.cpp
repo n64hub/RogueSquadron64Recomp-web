@@ -10,6 +10,11 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
+
 #include <exception>
 #include <typeinfo>
 
@@ -26,6 +31,7 @@
 #include "audio/audio.h"
 #include "main/cli.h"
 #include "main/crash.h"
+#include "main/discord_presence.h"
 #include "input/input_host.h"
 #include "main/ui_panels.h"
 #include "input/input_bindings.h"
@@ -35,6 +41,7 @@
 #include "input/touch_config.h"
 #include "game/game_state.h"           // rs64_state_current_id
 #include "util/debug_logs.h"
+#include "util/settings_file.h"
 #include "host_api/host_api.h"
 #include "main/main.h"                 // this file's own exports (fullscreen/quit hooks)
 #include "game/hook_helpers.h"         // g_vi_tick, g_boot_pulse_start
@@ -45,6 +52,10 @@
 #include "main/renderdoc_capture.h"
 #include "main/web_page.h"
 #include <mutex>
+
+#if defined(RS64_OPENXR)
+#include "video/vr_openxr.h"
+#endif
 
 #ifdef RS64_MCP
 #include "main/mcp_bridge.h"
@@ -196,9 +207,11 @@ ultramodern::gfx_callbacks_t::gfx_data_t create_gfx()
 
         if (ev->type == SDL_APP_WILLENTERBACKGROUND) {
             rs64::audio::set_foreground(false);
+            rs64::discord::set_foreground(false);
             rs64_render_suspend_surface();
         } else if (ev->type == SDL_APP_DIDENTERFOREGROUND) {
             rs64::audio::set_foreground(true);
+            rs64::discord::set_foreground(true);
         }
 
         return 0;
@@ -280,7 +293,7 @@ ultramodern::renderer::WindowHandle create_window(ultramodern::gfx_callbacks_t::
     if (!hide_window) {
         if (recomp::dbg::env_str("ROGUESQ_FULLSCREEN")) {
             rs64::video::pin_fullscreen(env_on("ROGUESQ_FULLSCREEN"));
-        } else if (rs64::video::peek_fullscreen("roguesq_video.json")) {
+        } else if (rs64::video::peek_fullscreen(rs64::video::config_path())) {
             rs64::video::set_fullscreen(true);
         }
 
@@ -479,6 +492,11 @@ void update_gfx(ultramodern::gfx_callbacks_t::gfx_data_t)
         fprintf(stderr, "[main] close requested while the game thread is held: exiting\n");
         fflush(stderr);
         rs64::host::run_quit_handlers();
+
+#if defined(RS64_OPENXR)
+        rs64::vr::quit();
+#endif
+
         _Exit(EXIT_SUCCESS);
     }
 
@@ -515,11 +533,13 @@ void update_gfx(ultramodern::gfx_callbacks_t::gfx_data_t)
     const bool focused = SDL_GetKeyboardFocus() != nullptr;
 #endif
 
-    bool want = focused
+    bool want = focused && g_vr_mouse_look.load();
+
+    want = want || (focused
              && !rs64::touch::shared_config().enabled
              && !g_show_controls.load()
              && !rs64_rt64_inspector_open()
-             && !mouse_menu_context(touch_context());
+             && !mouse_menu_context(touch_context()));
 
 #if defined(__EMSCRIPTEN__)
     want = web_pointer_lock_follow(want);
@@ -741,11 +761,15 @@ int main(int argc, char* argv[])
     // defaults as an editable template if it's absent. ROGUESQ_INPUT_RESET=1
     // overwrites it with defaults.
     std::string cfg = rs64::input::default_config_path();
-    const char* reset = recomp::os::getenv("ROGUESQ_INPUT_RESET");
-    bool force = reset && reset[0] && reset[0] != '0';
+    const bool force = recomp::dbg::env_on("ROGUESQ_INPUT_RESET");
 
     if (force || !rs64::input::load_bindings(g_bindings, cfg))
     {
+        if (!force)
+        {
+            rs64::settings::keep_bad_file(cfg);
+        }
+
         g_bindings = rs64::input::default_bindings();
         rs64::input::save_bindings(g_bindings, cfg);
 
@@ -754,7 +778,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "[input] loaded bindings from %s\n", cfg.c_str());
     }
 
-    g_report_rumble_pak.store(g_bindings.rumble.enabled);
+    // Headless test runs (fake controller) must not drive the motors of a real pad that happens to be connected.
+    g_report_rumble_pak.store(g_bindings.rumble.enabled && !recomp::dbg::env_on("ROGUESQ_FAKE_CONTROLLER"));
     fflush(stderr);
 
     // Touch controls: roguesq_touch.json (on by default on Android); ROGUESQ_TOUCH_DEBUG draws the menu tap boxes.

@@ -16,3 +16,9 @@
 [submodule "lib/N64Recomp-browser"]
 	path = lib/N64Recomp-browser
 	url = https://github.com/n64hub/N64Recomp-browser
+[submodule "mods/multiplayer-native/lib/monocypher"]
+	path = mods/multiplayer-native/lib/monocypher
+	url = https://github.com/LoupVaillant/Monocypher.git
+[submodule "lib/OpenXR-SDK"]
+	path = lib/OpenXR-SDK
+	url = https://github.com/KhronosGroup/OpenXR-SDK

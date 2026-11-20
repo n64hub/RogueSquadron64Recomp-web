@@ -65,7 +65,7 @@ set(RS64_RECOMP_INCLUDES
     "${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/librecomp/include"
     "${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include")
 set(RS64_RECOMP_OPTIONS -fno-strict-aliasing -fwrapv -Wno-unused-variable -Werror=implicit-function-declaration
-    -include "${CMAKE_SOURCE_DIR}/include/mem_wu.h")
+    -include "${CMAKE_SOURCE_DIR}/include/mem_wu.h" -include "${CMAKE_SOURCE_DIR}/include/recomp_imports.h")
 add_library(RecompiledFuncs STATIC ${RECOMP_C_SOURCES} ${RECOMP_CXX_SOURCES} "${CMAKE_SOURCE_DIR}/src/game/toml_hooks.c")
 target_include_directories(RecompiledFuncs PRIVATE ${RS64_RECOMP_INCLUDES})
 target_compile_definitions(RecompiledFuncs PRIVATE main=rs_main)
@@ -89,13 +89,15 @@ set(MUSYX_AUDIO_C ${CMAKE_SOURCE_DIR}/build/factor5_ucode/musyx_audio_recompiled
 set_source_files_properties(${FACTOR5_BOOT_C} ${MUSYX_AUDIO_C} PROPERTIES LANGUAGE CXX
     COMPILE_OPTIONS "-Wno-unused-variable;-Wno-missing-braces;-Wno-shift-op-parentheses;-Wno-bitwise-op-parentheses")
 
-# CMakeLists.txt's RS64_MAIN_SOURCES, but for the desktop's debugging tools.
+# CMakeLists.txt's RS64_MAIN_SOURCES, but for the desktop's debugging tools and its own browser build's sound and shader
+# converter (the page's are N64Recomp-browser's).
 add_executable(RogueSquadron64Recomp
     src/main/main.cpp
     src/main/web_page.cpp
     src/audio/audio.cpp
     src/main/cli.cpp
     src/main/crash.cpp
+    src/main/discord_presence.cpp
     src/input/input_host.cpp
     src/input/touch_host.cpp
     src/main/ui_panels.cpp
@@ -108,6 +110,10 @@ add_executable(RogueSquadron64Recomp
     src/input/touch_config.cpp
     src/video/video_config.cpp
     src/game/menus/menu_config.cpp
+    src/game/menus/controls_menu.cpp
+    src/game/menus/mods_menu.cpp
+    src/game/menus/menu_font.cpp
+    src/game/menus/menu_typing.cpp
     src/game/menus/pause_menu.cpp
     src/game/lang/lang.cpp
     src/video/rt64_render_context.cpp
@@ -139,6 +145,16 @@ add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/generated/default_lights.c ${CMAKE
     DEPENDS ${CMAKE_SOURCE_DIR}/src/video/default_lights.json
     VERBATIM)
 target_sources(RogueSquadron64Recomp PRIVATE ${CMAKE_BINARY_DIR}/generated/default_lights.c)
+# The MODS page's image model, as CMakeLists.txt makes it.
+foreach(part mod_image_HOB.bps mod_image_HMT)
+    string(REPLACE "." "_" sym "rs64_${part}")
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/generated/${sym}.c ${CMAKE_BINARY_DIR}/generated/${sym}.h
+        COMMAND "${RS64_WEB_TOOLS}/file_to_c" ${CMAKE_SOURCE_DIR}/src/game/menus/mod_image/${part} ${sym}
+            ${CMAKE_BINARY_DIR}/generated/${sym}.c ${CMAKE_BINARY_DIR}/generated/${sym}.h
+        DEPENDS ${CMAKE_SOURCE_DIR}/src/game/menus/mod_image/${part}
+        VERBATIM)
+    target_sources(RogueSquadron64Recomp PRIVATE ${CMAKE_BINARY_DIR}/generated/${sym}.c)
+endforeach()
 target_include_directories(RogueSquadron64Recomp PRIVATE
     ${CMAKE_BINARY_DIR}/generated
     ${CMAKE_BINARY_DIR}/patches
