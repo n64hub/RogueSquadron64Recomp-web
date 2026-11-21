@@ -12,6 +12,8 @@
 # the game's code beside the web's.
 # addresses.hpp: the page's RDRAM is the web's 512 MB, which RDRAM_OFFSET wraps a 32-bit host's addresses into, not
 # the 64 MB of the game's own browser build.
+# pak.cpp: the game's runtime traces each osPfs call (its lines off), and the web's Controller Pak replaces each one, so
+# this patch puts upstream's file back and the web's pak is merged over it.
 # merged from N64Recomp-browser 372cca0dd4671349fd7e9e1a3be7587341163e22
 N64ModernRuntime librecomp/CMakeLists.txt
 N64ModernRuntime librecomp/include/librecomp/addresses.hpp
@@ -19,6 +21,7 @@ N64ModernRuntime librecomp/include/librecomp/mods.hpp
 N64ModernRuntime librecomp/include/librecomp/rsp.hpp
 N64ModernRuntime librecomp/src/mods.cpp
 N64ModernRuntime librecomp/src/overlays.cpp
+N64ModernRuntime librecomp/src/pak.cpp
 N64ModernRuntime librecomp/src/recomp.cpp
 N64ModernRuntime librecomp/src/sp.cpp
 N64ModernRuntime ultramodern/include/ultramodern/ultra64.h

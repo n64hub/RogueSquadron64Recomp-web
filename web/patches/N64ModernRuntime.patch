@@ -571,6 +571,66 @@ index b278e9b..2c23396 100644
      loaded_mods_by_id.clear();
      hook_slots.clear();
      processed_hook_slots.clear();
+diff --git a/librecomp/src/pak.cpp b/librecomp/src/pak.cpp
+index 8f818b3..0be1513 100644
+--- a/librecomp/src/pak.cpp
++++ b/librecomp/src/pak.cpp
+@@ -1,4 +1,3 @@
+-#include <cstdio>
+ #include "ultramodern/ultra64.h"
+ #include "ultramodern/ultramodern.hpp"
+ 
+@@ -6,42 +5,34 @@
+ #include "helpers.hpp"
+ 
+ extern "C" void osPfsInitPak_recomp(uint8_t * rdram, recomp_context* ctx) {
+-    if(false) fprintf(stderr, "[trace] %s\n", __func__); fflush(stderr);
+     ctx->r2 = 1; // PFS_ERR_NOPACK
+ }
+ 
+ extern "C" void osPfsFreeBlocks_recomp(uint8_t * rdram, recomp_context * ctx) {
+-    if(false) fprintf(stderr, "[trace] %s\n", __func__); fflush(stderr);
+     ctx->r2 = 1; // PFS_ERR_NOPACK
+ }
+ 
+ extern "C" void osPfsAllocateFile_recomp(uint8_t * rdram, recomp_context * ctx) {
+-    if(false) fprintf(stderr, "[trace] %s\n", __func__); fflush(stderr);
+     ctx->r2 = 1; // PFS_ERR_NOPACK
+ }
+ 
+ extern "C" void osPfsDeleteFile_recomp(uint8_t * rdram, recomp_context * ctx) {
+-    if(false) fprintf(stderr, "[trace] %s\n", __func__); fflush(stderr);
+     ctx->r2 = 1; // PFS_ERR_NOPACK
+ }
+ 
+ extern "C" void osPfsFileState_recomp(uint8_t * rdram, recomp_context * ctx) {
+-    if(false) fprintf(stderr, "[trace] %s\n", __func__); fflush(stderr);
+     ctx->r2 = 1; // PFS_ERR_NOPACK
+ }
+ 
+ extern "C" void osPfsFindFile_recomp(uint8_t * rdram, recomp_context * ctx) {
+-    if(false) fprintf(stderr, "[trace] %s\n", __func__); fflush(stderr);
+     ctx->r2 = 1; // PFS_ERR_NOPACK
+ }
+ 
+ extern "C" void osPfsReadWriteFile_recomp(uint8_t * rdram, recomp_context * ctx) {
+-    if(false) fprintf(stderr, "[trace] %s\n", __func__); fflush(stderr);
+     ctx->r2 = 1; // PFS_ERR_NOPACK
+ }
+ 
+ extern "C" void osPfsChecker_recomp(uint8_t * rdram, recomp_context * ctx) {
+-    if(false) fprintf(stderr, "[trace] %s\n", __func__); fflush(stderr);
+     ctx->r2 = 1; // PFS_ERR_NOPACK
+ }
+ 
+@@ -58,7 +49,3 @@ extern "C" void osPfsNumFiles_recomp(uint8_t * rdram, recomp_context * ctx) {
+ extern "C" void osPfsRepairId_recomp(uint8_t * rdram, recomp_context * ctx) {
+     _return<s32>(ctx, 1); // PFS_ERR_NOPACK
+ }
+-
+-extern "C" ULTRAMODERN_OVERRIDABLE void __osPfsSelectBank_recomp(uint8_t* rdram, recomp_context* ctx) {
+-    _return<s32>(ctx, 1); // PFS_ERR_NOPACK — no memory pak
+-}
 diff --git a/librecomp/src/recomp.cpp b/librecomp/src/recomp.cpp
 index c467635..74a5b9d 100644
 --- a/librecomp/src/recomp.cpp
