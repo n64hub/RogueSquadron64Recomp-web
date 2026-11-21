@@ -14,7 +14,11 @@
 # the 64 MB of the game's own browser build.
 # pak.cpp: the game's runtime traces each osPfs call (its lines off), and the web's Controller Pak replaces each one, so
 # this patch puts upstream's file back and the web's pak is merged over it.
-# merged from N64Recomp-browser 372cca0dd4671349fd7e9e1a3be7587341163e22
+# rt64_state.cpp: the game skips copying a colour image to RAM on its own conditions (ROGUESQ_SKIP_COLOR_READBACK,
+# its address gate), which the web's late copy of depth buffers alone (renderToRAMLateDepthOnly) is added to.
+# rt64_transform_processor.cpp: the game takes a paired transform's frame before through its own rs64PrevInFrame(),
+# and the web's unpaired one moved with the camera (RT64_MOVE_UNPAIRED_WITH_CAMERA) takes its own.
+# merged from N64Recomp-browser d428740d51d376f1e909dc6ca1fe78653deae75b
 N64ModernRuntime librecomp/CMakeLists.txt
 N64ModernRuntime librecomp/include/librecomp/addresses.hpp
 N64ModernRuntime librecomp/include/librecomp/mods.hpp
@@ -81,6 +85,7 @@ rt64 src/render/rt64_raster_shader_cache.h
 rt64 src/render/rt64_render_target_manager.cpp
 rt64 src/render/rt64_rsp_processor.cpp
 rt64 src/render/rt64_shader_library.cpp
+rt64 src/render/rt64_transform_processor.cpp
 rt64 src/render/rt64_vi_renderer.cpp
 rt64 src/rhi/rt64_render_hooks.cpp
 rt64 src/rhi/rt64_render_hooks.h
